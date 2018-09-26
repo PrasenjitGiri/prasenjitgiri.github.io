@@ -1,4 +1,5 @@
 ---
+permalink : /machine-learning/
 header:
   image: "/images/machine_learning_header.jpg"
 ---
