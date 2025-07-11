@@ -42,6 +42,11 @@ const blogPosts = [
     }
 ];
 
+// Global variables for search and filter state
+let allPosts = [];
+let filteredPosts = [];
+let expandedSections = new Set();
+
 // Format date for display
 function formatDate(dateString) {
     const options = { year: 'numeric', month: 'long', day: 'numeric' };
@@ -115,7 +120,7 @@ function groupPostsByDate(posts) {
 // Create timeline item HTML
 function createTimelineItem(post) {
     return `
-        <div class="timeline-item">
+        <div class="timeline-item" data-post-id="${post.id}">
             <div class="timeline-date">
                 <span class="day">${new Date(post.date).getDate()}</span>
             </div>
@@ -131,61 +136,263 @@ function createTimelineItem(post) {
     `;
 }
 
-// Create year section HTML
-function createYearSection(year, months) {
-    const monthsHtml = Object.entries(months)
-        .sort(([a], [b]) => new Date(`${a} 1, ${year}`) - new Date(`${b} 1, ${year}`))
-        .reverse() // Most recent month first
-        .map(([month, posts]) => {
-            const postsHtml = posts
-                .sort((a, b) => new Date(b.date) - new Date(a.date))
-                .map(createTimelineItem)
-                .join('');
-            
-            return `
-                <div class="timeline-month">
-                    <h3 class="month-header">${month} ${year}</h3>
-                    <div class="timeline-items">
-                        ${postsHtml}
-                    </div>
-                </div>
-            `;
-        })
+// Get the most recent year and month
+function getMostRecentYearMonth(posts) {
+    if (posts.length === 0) return { year: null, month: null };
+    
+    const sortedPosts = posts.sort((a, b) => new Date(b.date) - new Date(a.date));
+    const mostRecent = sortedPosts[0];
+    const date = new Date(mostRecent.date);
+    
+    return {
+        year: date.getFullYear(),
+        month: date.toLocaleDateString('en-US', { month: 'long' })
+    };
+}
+
+// Create month section HTML with collapsible functionality
+function createMonthSection(month, year, posts, isExpanded = false) {
+    const monthId = `month-${year}-${month.replace(/\s+/g, '-')}`;
+    const postsHtml = posts
+        .sort((a, b) => new Date(b.date) - new Date(a.date))
+        .map(createTimelineItem)
         .join('');
     
     return `
-        <div class="timeline-year">
-            <h2 class="year-header">${year}</h2>
-            ${monthsHtml}
+        <div class="timeline-month" data-month-id="${monthId}">
+            <h3 class="month-header ${isExpanded ? 'expanded' : 'collapsed'}" onclick="toggleMonth('${monthId}')">
+                <span class="expand-icon">${isExpanded ? '▼' : '▶'}</span>
+                ${month} ${year}
+                <span class="post-count">(${posts.length} post${posts.length !== 1 ? 's' : ''})</span>
+            </h3>
+            <div class="timeline-items ${isExpanded ? 'expanded' : 'collapsed'}" id="${monthId}">
+                ${postsHtml}
+            </div>
         </div>
     `;
 }
 
-// Load all posts for blog page with timeline view
-function loadAllPosts() {
+// Create year section HTML with collapsible functionality
+function createYearSection(year, months, mostRecentYear, mostRecentMonth) {
+    const yearId = `year-${year}`;
+    const isCurrentYear = year == mostRecentYear;
+    
+    const monthsHtml = Object.entries(months)
+        .sort(([a], [b]) => new Date(`${a} 1, ${year}`) - new Date(`${b} 1, ${year}`))
+        .reverse() // Most recent month first
+        .map(([month, posts]) => {
+            const isCurrentMonth = isCurrentYear && month === mostRecentMonth;
+            return createMonthSection(month, year, posts, isCurrentMonth);
+        })
+        .join('');
+    
+    return `
+        <div class="timeline-year" data-year-id="${yearId}">
+            <h2 class="year-header ${isCurrentYear ? 'expanded' : 'collapsed'}" onclick="toggleYear('${yearId}')">
+                <span class="expand-icon">${isCurrentYear ? '▼' : '▶'}</span>
+                ${year}
+                <span class="year-stats">(${Object.values(months).flat().length} posts)</span>
+            </h2>
+            <div class="year-content ${isCurrentYear ? 'expanded' : 'collapsed'}" id="${yearId}">
+                ${monthsHtml}
+            </div>
+        </div>
+    `;
+}
+
+// Search functionality
+function searchPosts(query) {
+    if (!query.trim()) {
+        filteredPosts = [...allPosts];
+    } else {
+        const searchTerm = query.toLowerCase();
+        filteredPosts = allPosts.filter(post => 
+            post.title.toLowerCase().includes(searchTerm) ||
+            post.excerpt.toLowerCase().includes(searchTerm) ||
+            post.tags.some(tag => tag.toLowerCase().includes(searchTerm))
+        );
+    }
+    renderFilteredTimeline();
+}
+
+// Render filtered timeline
+function renderFilteredTimeline() {
     const blogPostsContainer = document.getElementById('blog-posts-container');
-    if (blogPostsContainer) {
-        // Sort posts by date (newest first)
-        const sortedPosts = blogPosts.sort((a, b) => new Date(b.date) - new Date(a.date));
-        
-        // Group posts by year and month
-        const groupedPosts = groupPostsByDate(sortedPosts);
-        
-        // Create timeline HTML
-        const timelineHtml = Object.entries(groupedPosts)
-            .sort(([a], [b]) => parseInt(b) - parseInt(a)) // Sort years descending
-            .map(([year, months]) => createYearSection(year, months))
-            .join('');
-        
+    if (!blogPostsContainer) return;
+    
+    if (filteredPosts.length === 0) {
         blogPostsContainer.innerHTML = `
             <div class="blog-timeline">
                 <div class="timeline-header">
-                    <h2>All Posts</h2>
-                    <p>A chronological journey through my insights and thoughts</p>
+                    <h2>No Posts Found</h2>
+                    <p>No posts match your search criteria. Try different keywords or clear the search.</p>
                 </div>
-                ${timelineHtml}
             </div>
         `;
+        return;
+    }
+    
+    // Sort posts by date (newest first)
+    const sortedPosts = filteredPosts.sort((a, b) => new Date(b.date) - new Date(a.date));
+    
+    // Group posts by year and month
+    const groupedPosts = groupPostsByDate(sortedPosts);
+    
+    // Get most recent year and month
+    const { year: mostRecentYear, month: mostRecentMonth } = getMostRecentYearMonth(sortedPosts);
+    
+    // Create timeline HTML
+    const timelineHtml = Object.entries(groupedPosts)
+        .sort(([a], [b]) => parseInt(b) - parseInt(a)) // Sort years descending
+        .map(([year, months]) => createYearSection(year, months, mostRecentYear, mostRecentMonth))
+        .join('');
+    
+    const resultCount = filteredPosts.length;
+    const totalCount = allPosts.length;
+    const showingText = resultCount === totalCount ? 
+        `Showing all ${totalCount} posts` : 
+        `Showing ${resultCount} of ${totalCount} posts`;
+    
+    blogPostsContainer.innerHTML = `
+        <div class="blog-timeline">
+            <div class="timeline-header">
+                <h2>Blog Timeline</h2>
+                <p>A chronological journey through my insights and thoughts</p>
+                <div class="search-results-info">${showingText}</div>
+            </div>
+            ${timelineHtml}
+        </div>
+    `;
+}
+
+// Toggle functions
+function toggleMonth(monthId) {
+    const monthElement = document.getElementById(monthId);
+    const headerElement = document.querySelector(`[data-month-id="${monthId}"] .month-header`);
+    const iconElement = headerElement.querySelector('.expand-icon');
+    
+    if (monthElement.classList.contains('expanded')) {
+        monthElement.classList.remove('expanded');
+        monthElement.classList.add('collapsed');
+        headerElement.classList.remove('expanded');
+        headerElement.classList.add('collapsed');
+        iconElement.textContent = '▶';
+        expandedSections.delete(monthId);
+    } else {
+        monthElement.classList.remove('collapsed');
+        monthElement.classList.add('expanded');
+        headerElement.classList.remove('collapsed');
+        headerElement.classList.add('expanded');
+        iconElement.textContent = '▼';
+        expandedSections.add(monthId);
+    }
+}
+
+function toggleYear(yearId) {
+    const yearElement = document.getElementById(yearId);
+    const headerElement = document.querySelector(`[data-year-id="${yearId}"] .year-header`);
+    const iconElement = headerElement.querySelector('.expand-icon');
+    
+    if (yearElement.classList.contains('expanded')) {
+        yearElement.classList.remove('expanded');
+        yearElement.classList.add('collapsed');
+        headerElement.classList.remove('expanded');
+        headerElement.classList.add('collapsed');
+        iconElement.textContent = '▶';
+        expandedSections.delete(yearId);
+    } else {
+        yearElement.classList.remove('collapsed');
+        yearElement.classList.add('expanded');
+        headerElement.classList.remove('collapsed');
+        headerElement.classList.add('expanded');
+        iconElement.textContent = '▼';
+        expandedSections.add(yearId);
+    }
+}
+
+function expandAll() {
+    document.querySelectorAll('.year-content, .timeline-items').forEach(element => {
+        element.classList.remove('collapsed');
+        element.classList.add('expanded');
+    });
+    
+    document.querySelectorAll('.year-header, .month-header').forEach(header => {
+        header.classList.remove('collapsed');
+        header.classList.add('expanded');
+        const icon = header.querySelector('.expand-icon');
+        if (icon) icon.textContent = '▼';
+    });
+    
+    // Update expanded sections set
+    expandedSections.clear();
+    document.querySelectorAll('.year-content, .timeline-items').forEach(element => {
+        expandedSections.add(element.id);
+    });
+}
+
+function collapseAll() {
+    document.querySelectorAll('.year-content, .timeline-items').forEach(element => {
+        element.classList.remove('expanded');
+        element.classList.add('collapsed');
+    });
+    
+    document.querySelectorAll('.year-header, .month-header').forEach(header => {
+        header.classList.remove('expanded');
+        header.classList.add('collapsed');
+        const icon = header.querySelector('.expand-icon');
+        if (icon) icon.textContent = '▶';
+    });
+    
+    expandedSections.clear();
+}
+
+// Load all posts for blog page with enhanced timeline view
+function loadAllPosts() {
+    const blogPostsContainer = document.getElementById('blog-posts-container');
+    if (blogPostsContainer) {
+        allPosts = [...blogPosts];
+        filteredPosts = [...allPosts];
+        
+        // Create search and controls HTML
+        const searchControlsHtml = `
+            <div class="timeline-controls">
+                <div class="search-container">
+                    <input type="text" id="blog-search" placeholder="Search posts by title, content, or tags..." />
+                    <button id="clear-search" onclick="clearSearch()">Clear</button>
+                </div>
+                <div class="expand-controls">
+                    <button onclick="expandAll()">Expand All</button>
+                    <button onclick="collapseAll()">Collapse All</button>
+                </div>
+            </div>
+        `;
+        
+        // Insert controls before rendering timeline
+        blogPostsContainer.innerHTML = searchControlsHtml;
+        
+        // Add search event listener
+        setTimeout(() => {
+            const searchInput = document.getElementById('blog-search');
+            if (searchInput) {
+                searchInput.addEventListener('input', (e) => searchPosts(e.target.value));
+                searchInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        searchPosts(e.target.value);
+                    }
+                });
+            }
+        }, 100);
+        
+        // Render initial timeline
+        renderFilteredTimeline();
+    }
+}
+
+function clearSearch() {
+    const searchInput = document.getElementById('blog-search');
+    if (searchInput) {
+        searchInput.value = '';
+        searchPosts('');
     }
 }
 
@@ -248,6 +455,13 @@ async function loadPost() {
         }
     }
 }
+
+// Make functions globally available
+window.toggleMonth = toggleMonth;
+window.toggleYear = toggleYear;
+window.expandAll = expandAll;
+window.collapseAll = collapseAll;
+window.clearSearch = clearSearch;
 
 // Initialize based on current page
 document.addEventListener('DOMContentLoaded', function() {

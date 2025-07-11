@@ -378,20 +378,139 @@ footer {
     margin: 0;
 }
 
+/* Timeline Controls */
+.timeline-controls {
+    background: white;
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+    margin-bottom: 40px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.search-container {
+    display: flex;
+    gap: 10px;
+    flex: 1;
+    min-width: 300px;
+}
+
+.search-container input {
+    flex: 1;
+    padding: 12px 16px;
+    border: 2px solid #e1e8ed;
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    background: #f8f9fa;
+}
+
+.search-container input:focus {
+    outline: none;
+    border-color: #3498db;
+    background: white;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+.search-container button,
+.expand-controls button {
+    padding: 12px 20px;
+    border: 2px solid #3498db;
+    background: white;
+    color: #3498db;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.search-container button:hover,
+.expand-controls button:hover {
+    background: #3498db;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+}
+
+.expand-controls {
+    display: flex;
+    gap: 10px;
+}
+
+.search-results-info {
+    color: #666;
+    font-style: italic;
+    margin-top: 10px;
+    font-size: 0.9rem;
+}
+
 .timeline-year {
     margin-bottom: 60px;
 }
 
 .year-header {
-    color: #2c3e50;
+    color: white;
     font-size: 2rem;
-    margin-bottom: 30px;
+    margin-bottom: 0;
     padding: 20px 30px;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
     border-radius: 10px;
-    text-align: center;
+    text-align: left;
     box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    position: relative;
+}
+
+.year-header:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+    background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+}
+
+.year-header .expand-icon {
+    font-size: 1.2rem;
+    transition: transform 0.3s ease;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.year-header.expanded .expand-icon {
+    transform: rotate(0deg);
+}
+
+.year-header.collapsed .expand-icon {
+    transform: rotate(-90deg);
+}
+
+.year-stats {
+    margin-left: auto;
+    font-size: 0.9rem;
+    opacity: 0.8;
+    font-weight: normal;
+}
+
+.year-content {
+    overflow: hidden;
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.year-content.expanded {
+    max-height: none;
+    opacity: 1;
+    margin-top: 30px;
+}
+
+.year-content.collapsed {
+    max-height: 0;
+    opacity: 0;
+    margin-top: 0;
 }
 
 .timeline-month {
@@ -401,27 +520,64 @@ footer {
 
 .month-header {
     color: #34495e;
-    font-size: 1.5rem;
-    margin-bottom: 25px;
-    padding-left: 50px;
-    position: relative;
+    font-size: 1.4rem;
+    margin-bottom: 0;
+    padding: 15px 20px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-left: 4px solid #3498db;
 }
 
-.month-header:before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 30px;
-    height: 3px;
-    background: #3498db;
-    border-radius: 2px;
+.month-header:hover {
+    transform: translateX(5px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.15);
+    background: #f8f9fa;
+}
+
+.month-header .expand-icon {
+    font-size: 1rem;
+    transition: transform 0.3s ease;
+    color: #3498db;
+}
+
+.month-header.expanded .expand-icon {
+    transform: rotate(90deg);
+}
+
+.month-header.collapsed .expand-icon {
+    transform: rotate(0deg);
+}
+
+.post-count {
+    margin-left: auto;
+    font-size: 0.8rem;
+    color: #999;
+    font-weight: normal;
 }
 
 .timeline-items {
     position: relative;
     margin-left: 40px;
+    overflow: hidden;
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.timeline-items.expanded {
+    max-height: none;
+    opacity: 1;
+    margin-top: 25px;
+}
+
+.timeline-items.collapsed {
+    max-height: 0;
+    opacity: 0;
+    margin-top: 0;
 }
 
 .timeline-items:before {
@@ -669,6 +825,28 @@ footer {
     }
     
     /* Timeline Mobile Responsive */
+    .timeline-controls {
+        flex-direction: column;
+        gap: 15px;
+        padding: 20px;
+    }
+
+    .search-container {
+        min-width: 100%;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .expand-controls {
+        justify-content: center;
+        width: 100%;
+    }
+
+    .expand-controls button {
+        flex: 1;
+        max-width: 150px;
+    }
+
     .timeline-header h2 {
         font-size: 2rem;
     }
@@ -678,17 +856,20 @@ footer {
     }
     
     .year-header {
-        font-size: 1.5rem;
+        font-size: 1.4rem;
         padding: 15px 20px;
+        flex-direction: column;
+        gap: 8px;
+        text-align: center;
+    }
+
+    .year-stats {
+        margin-left: 0;
     }
     
     .month-header {
-        font-size: 1.3rem;
-        padding-left: 40px;
-    }
-    
-    .month-header:before {
-        width: 25px;
+        font-size: 1.2rem;
+        padding: 12px 16px;
     }
     
     .timeline-items {
