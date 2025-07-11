@@ -87,46 +87,20 @@ data = cyclical_encode(data, 'month', 12)
 data = cyclical_encode(data, 'hour', 24)
 ```
 
-**Why does this work?** Let's visualize:
+**Why does this work?** Let's visualize the difference:
 
-```python
-import matplotlib.pyplot as plt
+![Encoding Comparison](assets/images/cyclical-encoding/encoding_comparison.png)
 
-# Create sample data for days of week
-days = np.arange(0, 7)
-day_sin = np.sin(2 * np.pi * days / 7)
-day_cos = np.cos(2 * np.pi * days / 7)
+The visualization above shows the stark difference between linear and cyclical encoding. Notice how:
+- **Linear encoding** creates an artificial "cliff" between Saturday (6) and Sunday (0)
+- **Sine component** creates a smooth wave that naturally connects the week's end to its beginning
+- **Cosine component** provides the complementary cyclical information
 
-# Plot the cyclical encoding
-fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(15, 5))
+Now let's see how different time periods look on the unit circle:
 
-# Linear encoding
-ax1.plot(days, days, 'bo-')
-ax1.set_title('Linear Encoding')
-ax1.set_xlabel('Day Index')
-ax1.set_ylabel('Encoded Value')
+![Unit Circle Visualization](assets/images/cyclical-encoding/unit_circle_visualization.png)
 
-# Sine component
-ax2.plot(days, day_sin, 'ro-')
-ax2.set_title('Sine Component')
-ax2.set_xlabel('Day Index')
-ax2.set_ylabel('Sin Value')
-
-# Cosine component
-ax3.plot(days, day_cos, 'go-')
-ax3.set_title('Cosine Component')
-ax3.set_xlabel('Day Index')
-ax3.set_ylabel('Cos Value')
-
-plt.tight_layout()
-plt.show()
-
-# Most importantly - the circular plot!
-fig, ax = plt.subplots(figsize=(8, 8), subplot_kw=dict(projection='polar'))
-theta = 2 * np.pi * days / 7
-ax.plot(theta, np.ones_like(theta), 'bo', markersize=10)
-ax.set_title('Days of Week on Unit Circle')
-```
+This is the magic of cyclical encoding! Each time period forms a perfect circle where consecutive values are always adjacent, regardless of whether we're looking at days, hours, months, or seasons.
 
 ## Real-World Scenarios: When Cyclical Encoding Shines
 
@@ -164,6 +138,12 @@ print(f"Cyclical distance (11 AM to 1 PM): {euclidean_distance(np.sin(2*np.pi*11
 ```
 
 **Question**: Which approach better represents the reality that 11 PM and 1 AM are only 2 hours apart?
+
+**Answer**: The cyclical approach! Here's a visual proof showing distance matrices:
+
+![Distance Comparison](assets/images/cyclical-encoding/distance_comparison.png)
+
+Look at the highlighted boxes showing Sunday-Monday distances. In linear encoding, they're 6 units apart (terrible!), but in cyclical encoding, they're properly close together. This is why your model performs better with cyclical features.
 
 ### Scenario 2: The Seasonal Sales Predictor
 
@@ -203,6 +183,12 @@ print(f"Cyclical encoding R² score: {scores_cyclical.mean():.4f} ± {scores_cyc
 ```
 
 **Question**: Why do you think cyclical encoding performs better here?
+
+**Answer**: Because cyclical encoding captures the seasonal relationship! Here's the visual proof:
+
+![Seasonal Sales Example](assets/images/cyclical-encoding/seasonal_sales_example.png)
+
+The visualization shows how cyclical encoding creates meaningful relationships in the feature space. Notice how the sine and cosine components create smooth patterns that correlate with sales, while linear encoding misses the December-January connection entirely.
 
 ## Advanced Cyclical Encoding Techniques
 
@@ -323,62 +309,17 @@ day_sin, day_cos = phase_shifted_encode(day_of_week, 7, phase_shift=1)
 
 ### Visual Validation
 
-```python
-def validate_cyclical_encoding(original_values, max_val, feature_name):
-    """
-    Visualize and validate cyclical encoding
-    """
-    sin_vals = np.sin(2 * np.pi * original_values / max_val)
-    cos_vals = np.cos(2 * np.pi * original_values / max_val)
-    
-    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(12, 10))
-    
-    # Original values
-    ax1.plot(original_values, 'bo-')
-    ax1.set_title(f'Original {feature_name} Values')
-    ax1.set_xlabel('Index')
-    ax1.set_ylabel('Value')
-    
-    # Sine component
-    ax2.plot(sin_vals, 'ro-')
-    ax2.set_title(f'{feature_name} Sine Component')
-    ax2.set_xlabel('Index')
-    ax2.set_ylabel('Sin Value')
-    
-    # Cosine component
-    ax3.plot(cos_vals, 'go-')
-    ax3.set_title(f'{feature_name} Cosine Component')
-    ax3.set_xlabel('Index')
-    ax3.set_ylabel('Cos Value')
-    
-    # Circular plot
-    theta = 2 * np.pi * original_values / max_val
-    ax4 = plt.subplot(2, 2, 4, projection='polar')
-    ax4.plot(theta, np.ones_like(theta), 'bo', markersize=8)
-    ax4.set_title(f'{feature_name} on Unit Circle')
-    
-    plt.tight_layout()
-    plt.show()
-    
-    # Distance validation
-    print(f"\nDistance Analysis for {feature_name}:")
-    for i in range(min(5, len(original_values)-1)):
-        current = original_values[i]
-        next_val = original_values[i+1]
-        
-        # Traditional distance
-        trad_dist = abs(next_val - current)
-        
-        # Cyclical distance
-        cyc_dist = np.sqrt((sin_vals[i+1] - sin_vals[i])**2 + 
-                          (cos_vals[i+1] - cos_vals[i])**2)
-        
-        print(f"  {current} to {next_val}: Traditional={trad_dist}, Cyclical={cyc_dist:.4f}")
+Here's how to properly validate your cyclical encoding:
 
-# Test with months
-months = np.arange(1, 13)
-validate_cyclical_encoding(months, 12, 'Month')
-```
+![Validation Example](assets/images/cyclical-encoding/validation_example.png)
+
+This comprehensive validation shows:
+- **Original values**: The raw hour values (0-23)
+- **Sine component**: How the sine wave captures the cyclical pattern
+- **Cosine component**: The complementary cyclical information
+- **Unit circle**: Visual proof that 11 PM and 1 AM are indeed close neighbors
+
+The key insight: on the unit circle, every hour is exactly the same distance from its neighbors, which is exactly what we want for time-based features!
 
 ### Numerical Validation
 
@@ -479,6 +420,17 @@ def memory_efficient_cyclical_encode(values, max_val, dtype=np.float32):
     return sin_vals, cos_vals
 ```
 
+### Common Implementation Pitfalls
+
+**Warning**: Getting the implementation wrong can completely break your encoding! Here's visual proof of what happens:
+
+![Common Pitfalls](assets/images/cyclical-encoding/common_pitfalls.png)
+
+The visualization shows the critical difference between correct and incorrect implementations:
+- **Wrong approach** (red): Using 1-based months directly causes phase shift
+- **Correct approach** (green): Properly adjusting 1-based values or using 0-based indexing
+- **Unit circle impact**: Notice how the wrong approach misaligns everything, breaking the cyclical relationships
+
 ## The Great Debate: When NOT to Use Cyclical Encoding
 
 ### Case 1: Non-Cyclical Ordinal Features
@@ -538,6 +490,15 @@ def multi_cycle_encode(day_of_year):
     
     return week_sin, week_cos, month_sin, month_cos
 ```
+
+Here's how multi-level cyclical patterns look in practice:
+
+![Multi-Level Cycles](assets/images/cyclical-encoding/multi_level_cycles.png)
+
+This visualization demonstrates the power of combining multiple cyclical patterns. Notice how:
+- **Daily patterns** create their own circular structure (24-hour cycle)
+- **Weekly patterns** overlay a 7-day rhythm
+- **Combined feature space** shows how both patterns interact to create rich, meaningful representations
 
 ### Question 2: Handling Missing Values
 
