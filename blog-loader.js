@@ -3,7 +3,7 @@ const blogPosts = [
     {
         id: 'timeseries-comprehensive-guide',
         title: 'Time Series Analysis: From Statistical Foundations to Neural Networks',
-        date: '2025-01-20',
+        date: '2020-01-20',
         excerpt: 'A comprehensive guide covering the entire spectrum of time series analysis from classical statistical methods to cutting-edge neural network architectures.',
         file: 'posts/timeseries-comprehensive-guide.md',
         tags: ['Time Series', 'Statistics', 'Machine Learning', 'Neural Networks', 'ARIMA', 'LSTM']
@@ -89,13 +89,103 @@ function loadLatestPosts() {
     }
 }
 
-// Load all posts for blog page
+// Group posts by year and month
+function groupPostsByDate(posts) {
+    const grouped = {};
+    
+    posts.forEach(post => {
+        const date = new Date(post.date);
+        const year = date.getFullYear();
+        const month = date.toLocaleDateString('en-US', { month: 'long' });
+        
+        if (!grouped[year]) {
+            grouped[year] = {};
+        }
+        
+        if (!grouped[year][month]) {
+            grouped[year][month] = [];
+        }
+        
+        grouped[year][month].push(post);
+    });
+    
+    return grouped;
+}
+
+// Create timeline item HTML
+function createTimelineItem(post) {
+    return `
+        <div class="timeline-item">
+            <div class="timeline-date">
+                <span class="day">${new Date(post.date).getDate()}</span>
+            </div>
+            <div class="timeline-content">
+                <h3><a href="post.html?id=${post.id}" class="read-more">${post.title}</a></h3>
+                <p class="excerpt">${post.excerpt}</p>
+                <div class="timeline-meta">
+                    <span class="tags">${post.tags.join(', ')}</span>
+                    <a href="post.html?id=${post.id}" class="read-more">Read Full Post →</a>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Create year section HTML
+function createYearSection(year, months) {
+    const monthsHtml = Object.entries(months)
+        .sort(([a], [b]) => new Date(`${a} 1, ${year}`) - new Date(`${b} 1, ${year}`))
+        .reverse() // Most recent month first
+        .map(([month, posts]) => {
+            const postsHtml = posts
+                .sort((a, b) => new Date(b.date) - new Date(a.date))
+                .map(createTimelineItem)
+                .join('');
+            
+            return `
+                <div class="timeline-month">
+                    <h3 class="month-header">${month} ${year}</h3>
+                    <div class="timeline-items">
+                        ${postsHtml}
+                    </div>
+                </div>
+            `;
+        })
+        .join('');
+    
+    return `
+        <div class="timeline-year">
+            <h2 class="year-header">${year}</h2>
+            ${monthsHtml}
+        </div>
+    `;
+}
+
+// Load all posts for blog page with timeline view
 function loadAllPosts() {
     const blogPostsContainer = document.getElementById('blog-posts-container');
     if (blogPostsContainer) {
         // Sort posts by date (newest first)
         const sortedPosts = blogPosts.sort((a, b) => new Date(b.date) - new Date(a.date));
-        blogPostsContainer.innerHTML = sortedPosts.map(createBlogItem).join('');
+        
+        // Group posts by year and month
+        const groupedPosts = groupPostsByDate(sortedPosts);
+        
+        // Create timeline HTML
+        const timelineHtml = Object.entries(groupedPosts)
+            .sort(([a], [b]) => parseInt(b) - parseInt(a)) // Sort years descending
+            .map(([year, months]) => createYearSection(year, months))
+            .join('');
+        
+        blogPostsContainer.innerHTML = `
+            <div class="blog-timeline">
+                <div class="timeline-header">
+                    <h2>All Posts</h2>
+                    <p>A chronological journey through my insights and thoughts</p>
+                </div>
+                ${timelineHtml}
+            </div>
+        `;
     }
 }
 

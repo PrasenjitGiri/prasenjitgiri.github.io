@@ -353,6 +353,187 @@ footer {
     line-height: 1.6;
 }
 
+/* Timeline Styles */
+.blog-timeline {
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.timeline-header {
+    text-align: center;
+    margin-bottom: 60px;
+    padding-bottom: 30px;
+    border-bottom: 2px solid #f0f0f0;
+}
+
+.timeline-header h2 {
+    color: #2c3e50;
+    font-size: 2.5rem;
+    margin-bottom: 15px;
+}
+
+.timeline-header p {
+    color: #666;
+    font-size: 1.2rem;
+    margin: 0;
+}
+
+.timeline-year {
+    margin-bottom: 60px;
+}
+
+.year-header {
+    color: #2c3e50;
+    font-size: 2rem;
+    margin-bottom: 30px;
+    padding: 20px 30px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 10px;
+    text-align: center;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.timeline-month {
+    margin-bottom: 40px;
+    position: relative;
+}
+
+.month-header {
+    color: #34495e;
+    font-size: 1.5rem;
+    margin-bottom: 25px;
+    padding-left: 50px;
+    position: relative;
+}
+
+.month-header:before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 30px;
+    height: 3px;
+    background: #3498db;
+    border-radius: 2px;
+}
+
+.timeline-items {
+    position: relative;
+    margin-left: 40px;
+}
+
+.timeline-items:before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: linear-gradient(to bottom, #3498db, #e8f4fd);
+    border-radius: 1px;
+}
+
+.timeline-item {
+    position: relative;
+    margin-bottom: 40px;
+    display: flex;
+    align-items: flex-start;
+    gap: 30px;
+    padding-left: 40px;
+}
+
+.timeline-item:before {
+    content: '';
+    position: absolute;
+    left: -9px;
+    top: 15px;
+    width: 20px;
+    height: 20px;
+    background: #3498db;
+    border-radius: 50%;
+    border: 3px solid white;
+    box-shadow: 0 2px 8px rgba(52, 152, 219, 0.3);
+}
+
+.timeline-date {
+    flex-shrink: 0;
+    width: 60px;
+    text-align: center;
+}
+
+.timeline-date .day {
+    display: block;
+    font-size: 2rem;
+    font-weight: 700;
+    color: #2c3e50;
+    line-height: 1;
+}
+
+.timeline-content {
+    flex: 1;
+    background: white;
+    border-radius: 10px;
+    padding: 25px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.timeline-content:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+}
+
+.timeline-content h3 {
+    color: #2c3e50;
+    margin-bottom: 15px;
+    font-size: 1.4rem;
+    line-height: 1.3;
+}
+
+.timeline-content h3 a {
+    color: inherit;
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+.timeline-content h3 a:hover {
+    color: #3498db;
+}
+
+.timeline-content .excerpt {
+    color: #666;
+    line-height: 1.6;
+    margin-bottom: 20px;
+    font-size: 1rem;
+}
+
+.timeline-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 15px;
+    border-top: 1px solid #f0f0f0;
+    font-size: 0.9rem;
+}
+
+.timeline-meta .tags {
+    color: #999;
+    font-style: italic;
+}
+
+.timeline-meta .read-more {
+    color: #3498db;
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.3s ease;
+}
+
+.timeline-meta .read-more:hover {
+    color: #2980b9;
+}
+
 /* About Page Styles */
 .about-content {
     padding: 80px 0;
@@ -485,5 +666,69 @@ footer {
     
     .article-title {
         font-size: 2rem;
+    }
+    
+    /* Timeline Mobile Responsive */
+    .timeline-header h2 {
+        font-size: 2rem;
+    }
+    
+    .timeline-header p {
+        font-size: 1rem;
+    }
+    
+    .year-header {
+        font-size: 1.5rem;
+        padding: 15px 20px;
+    }
+    
+    .month-header {
+        font-size: 1.3rem;
+        padding-left: 40px;
+    }
+    
+    .month-header:before {
+        width: 25px;
+    }
+    
+    .timeline-items {
+        margin-left: 20px;
+    }
+    
+    .timeline-item {
+        flex-direction: column;
+        gap: 15px;
+        padding-left: 30px;
+    }
+    
+    .timeline-item:before {
+        left: -6px;
+        width: 14px;
+        height: 14px;
+        top: 10px;
+    }
+    
+    .timeline-date {
+        width: auto;
+        text-align: left;
+    }
+    
+    .timeline-date .day {
+        font-size: 1.5rem;
+        display: inline;
+    }
+    
+    .timeline-content {
+        padding: 20px;
+    }
+    
+    .timeline-content h3 {
+        font-size: 1.2rem;
+    }
+    
+    .timeline-meta {
+        flex-direction: column;
+        gap: 10px;
+        align-items: flex-start;
     }
 } 
