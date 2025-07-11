@@ -1,6 +1,14 @@
 // Blog posts configuration
 const blogPosts = [
     {
+        id: 'recommender-systems-ml-guide',
+        title: 'Recommender Systems with Machine Learning: From Theory to Production',
+        date: '2025-01-26',
+        excerpt: 'A comprehensive guide to building recommender systems using machine learning. Covers collaborative filtering, content-based filtering, matrix factorization, deep learning approaches, and real-world implementation with production-ready Python code.',
+        file: 'posts/recommender-systems-ml-guide.md',
+        tags: ['Recommender Systems', 'Machine Learning', 'Collaborative Filtering', 'Matrix Factorization', 'Deep Learning', 'Python', 'Production Code', 'E-commerce']
+    },
+    {
         id: 'residual-analysis-timeseries',
         title: 'Residual Analysis in Time Series: Validating Models and Uncovering Hidden Patterns',
         date: '2025-01-25',
