@@ -1,923 +1,952 @@
 # Word Embeddings from Scratch: The Journey from Words to Vectors
 
-*Ever wondered how computers understand that "king" and "queen" are related, or that "Paris" is closer to "France" than to "banana"? Welcome to the fascinating world of word embeddings—where mathematics meets linguistics in the most elegant way possible.*
+*Published: January 20, 2023*
 
-Today, we're going on a journey to build word embeddings completely from scratch, understand Byte Pair Encoding (BPE), and answer the fundamental question that confuses many: **When I have a sentence of 20 words, do I get 20 different embeddings or one combined embedding?**
+With ChatGPT revolutionizing how we interact with AI, understanding the fundamental building blocks of natural language processing has never been more crucial. At the heart of modern NLP systems lie **word embeddings** - dense vector representations that capture semantic meaning in numerical form.
 
-By the end of this post, you'll not only understand the mathematics behind embeddings but also implement them without using any external libraries.
+But here's the question that sparked this deep dive: **When you have a 20-word sentence, do you get 20 different word embeddings or one combined embedding?** 
 
-## The Great Embedding Mystery: One Sentence, How Many Vectors?
+**The answer is definitive: You get 20 individual word embeddings, one for each word.** This might seem obvious, but it's a crucial distinction that shapes how we process and understand language computationally.
 
-Let's start with your exact question because it's the foundation of everything we'll discuss:
+## The Foundation: What Are Word Embeddings?
 
-**Scenario**: You have the sentence "The quick brown fox jumps over the lazy dog" (9 words). You keep adding words: "The quick brown fox jumps over the lazy dog runs" (10 words), then "The quick brown fox jumps over the lazy dog runs fast" (11 words).
+Word embeddings transform discrete words into continuous vector spaces where semantic similarity translates to mathematical proximity. Unlike traditional one-hot encoding where each word is an isolated dimension, embeddings capture rich semantic relationships.
 
-**Question**: Do you get 9, 10, and 11 different embeddings respectively, or do you get one embedding for each complete sentence?
+![Embedding Space Visualization](/assets/images/word-embeddings/embedding_space_visualization.png)
 
-**Answer**: **You get individual embeddings for each word!** 
+The groundbreaking work by Mikolov et al. in 2013 ([Efficient Estimation of Word Representations in Vector Space](https://arxiv.org/abs/1301.3781)) introduced Skip-Gram and Continuous Bag of Words (CBOW) models that revolutionized how we represent language computationally.
 
-- "The quick brown fox" → 4 separate word embeddings: [vec_the, vec_quick, vec_brown, vec_fox]
-- Each word has its own vector representation
-- The sentence-level representation comes from **combining** these individual word embeddings
+## Skip-Gram Architecture: Predicting Context from Target
 
-But wait—there's more to this story. Let's dive deep into how this actually works.
+The Skip-Gram model, detailed in Mikolov et al.'s follow-up paper ([Distributed Representations of Words and Phrases](https://arxiv.org/abs/1310.4546)), learns embeddings by predicting context words given a target word.
 
-## Chapter 1: What Are Word Embeddings, Really?
+![Skip-Gram Architecture](/assets/images/word-embeddings/skipgram_architecture.png)
 
-### The Problem: Computers Don't Understand Words
+### Mathematical Foundation
 
-Imagine you're teaching a robot to understand human language. You show it the word "dog." The robot asks: "What's a dog?"
+For a target word `w` and context word `c`, the Skip-Gram objective maximizes:
 
-You could try:
-- "It's a four-legged animal" → But so is a cat, horse, and table
-- "It's a pet" → But so is a fish or bird
-- "It's loyal and friendly" → But that's subjective
-
-The fundamental challenge: **How do we convert the semantic richness of words into numbers that computers can process?**
-
-### The Solution: Vector Space Magic
-
-Word embeddings solve this by mapping each word to a high-dimensional vector (typically 100-300 dimensions) where:
-- Similar words are close to each other
-- Relationships are preserved through vector arithmetic
-- Semantic meaning is captured in geometric space
-
-**Example**: If we have 3-dimensional embeddings:
 ```
-"king"   → [0.2, 0.8, 0.3]
-"queen"  → [0.1, 0.7, 0.9]
-"man"    → [0.3, 0.1, 0.2]
-"woman"  → [0.2, 0.0, 0.8]
+P(c|w) = exp(v_c · v_w) / Σ_{c'∈V} exp(v_c' · v_w)
 ```
 
-The famous relationship emerges: **king - man + woman ≈ queen**
+Where:
+- `v_w` is the target word embedding
+- `v_c` is the context word embedding  
+- `V` is the vocabulary
 
-## Chapter 2: Building Word Embeddings from Scratch
+### Context Window: The Learning Mechanism
 
-### The Mathematical Foundation: Skip-Gram Model
+![Context Window Illustration](/assets/images/word-embeddings/context_window_illustration.png)
 
-Let's implement the Skip-Gram model—one of the most intuitive embedding approaches. The idea: **predict context words given a target word**.
+The context window defines which words influence each other during training. A window size of 2 means we consider 2 words on each side of the target word as context.
 
-**Scenario**: Given the sentence "The cat sat on the mat"
-- Target word: "sat"
-- Context words: "cat", "on" (window size = 1)
-- Goal: Train a neural network to predict "cat" and "on" when given "sat"
+## Implementation from Scratch: No External Libraries
 
-### Step 1: Data Preparation
+Let me walk you through a complete implementation that builds word embeddings from the ground up, explaining each component clearly.
+
+### 1. Vocabulary Building and Preprocessing
 
 ```python
 import numpy as np
 import re
+import logging
 from collections import defaultdict, Counter
+from typing import List, Tuple, Dict, Set
+import pickle
 import random
 
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
 class WordEmbeddingTrainer:
-    def __init__(self, vector_size=100, window_size=2, min_count=1, learning_rate=0.01):
-        self.vector_size = vector_size
+    """
+    Complete word embedding trainer implementing Skip-Gram with negative sampling.
+    
+    This implementation follows the mathematical foundations from:
+    - Mikolov et al. (2013): "Efficient Estimation of Word Representations in Vector Space"
+    - Mikolov et al. (2013): "Distributed Representations of Words and Phrases"
+    """
+    
+    def __init__(self, embedding_dim: int = 300, window_size: int = 5, 
+                 negative_samples: int = 5, learning_rate: float = 0.025,
+                 min_count: int = 5, epochs: int = 10):
+        """
+        Initialize the word embedding trainer.
+        
+        Args:
+            embedding_dim: Dimensionality of word vectors (typically 100-300)
+            window_size: Context window size around target word
+            negative_samples: Number of negative samples per positive sample
+            learning_rate: Learning rate for gradient descent
+            min_count: Minimum word frequency to include in vocabulary
+            epochs: Number of training epochs
+        """
+        self.embedding_dim = embedding_dim
         self.window_size = window_size
-        self.min_count = min_count
+        self.negative_samples = negative_samples
         self.learning_rate = learning_rate
+        self.min_count = min_count
+        self.epochs = epochs
         
-        # Vocabulary mappings
-        self.word_to_id = {}
-        self.id_to_word = {}
+        # Vocabulary and mappings
+        self.word_to_idx = {}
+        self.idx_to_word = {}
         self.word_counts = Counter()
+        self.vocab_size = 0
         
-        # Neural network weights
-        self.W1 = None  # Input to hidden layer
-        self.W2 = None  # Hidden to output layer
+        # Embedding matrices
+        self.W1 = None  # Input embeddings (what we ultimately use)
+        self.W2 = None  # Output embeddings (for prediction)
         
         # Training data
         self.training_pairs = []
+        
+        logger.info(f"Initialized WordEmbeddingTrainer with dim={embedding_dim}, "
+                   f"window={window_size}, negative_samples={negative_samples}")
     
-    def preprocess_text(self, text):
-        """Clean and tokenize text"""
-        # Convert to lowercase and remove punctuation
-        text = re.sub(r'[^a-zA-Z\s]', '', text.lower())
-        words = text.split()
-        return words
-    
-    def build_vocabulary(self, corpus):
-        """Build vocabulary from corpus"""
-        print("Building vocabulary...")
+    def preprocess_text(self, text: str) -> List[str]:
+        """
+        Preprocess text by cleaning and tokenizing.
         
-        # Count word frequencies
-        for sentence in corpus:
-            words = self.preprocess_text(sentence)
-            self.word_counts.update(words)
-        
-        # Filter words by minimum count
-        vocab_words = [word for word, count in self.word_counts.items() 
-                      if count >= self.min_count]
-        
-        # Create word-to-index mappings
-        self.word_to_id = {word: i for i, word in enumerate(vocab_words)}
-        self.id_to_word = {i: word for word, i in self.word_to_id.items()}
-        
-        self.vocab_size = len(vocab_words)
-        print(f"Vocabulary size: {self.vocab_size}")
-        return vocab_words
-```
-
-### Step 2: Generate Training Pairs
-
-```python
-    def generate_training_data(self, corpus):
-        """Generate (target_word, context_word) pairs"""
-        print("Generating training pairs...")
-        
-        for sentence in corpus:
-            words = self.preprocess_text(sentence)
-            word_ids = [self.word_to_id[word] for word in words 
-                       if word in self.word_to_id]
+        Args:
+            text: Raw input text
             
-            # Generate skip-gram pairs
-            for i, target_id in enumerate(word_ids):
-                # Define context window
-                start = max(0, i - self.window_size)
-                end = min(len(word_ids), i + self.window_size + 1)
-                
-                for j in range(start, end):
-                    if i != j:  # Don't pair word with itself
-                        context_id = word_ids[j]
-                        self.training_pairs.append((target_id, context_id))
-        
-        print(f"Generated {len(self.training_pairs)} training pairs")
-        return self.training_pairs
-```
-
-### Step 3: Initialize Neural Network
-
-```python
-    def initialize_weights(self):
-        """Initialize neural network weights"""
-        # Xavier initialization for better convergence
-        limit = np.sqrt(6.0 / (self.vocab_size + self.vector_size))
-        
-        # Input to hidden weights (vocab_size x vector_size)
-        self.W1 = np.random.uniform(-limit, limit, 
-                                   (self.vocab_size, self.vector_size))
-        
-        # Hidden to output weights (vector_size x vocab_size)
-        self.W2 = np.random.uniform(-limit, limit, 
-                                   (self.vector_size, self.vocab_size))
-        
-        print(f"Initialized weights: W1 {self.W1.shape}, W2 {self.W2.shape}")
-```
-
-### Step 4: Forward Pass and Softmax
-
-```python
-    def softmax(self, x):
-        """Numerically stable softmax"""
-        exp_x = np.exp(x - np.max(x))
-        return exp_x / np.sum(exp_x)
-    
-    def forward_pass(self, target_word_id):
-        """Forward pass through the network"""
-        # One-hot encode input
-        input_vector = np.zeros(self.vocab_size)
-        input_vector[target_word_id] = 1
-        
-        # Hidden layer (this becomes our word embedding!)
-        hidden = np.dot(input_vector, self.W1)
-        
-        # Output layer
-        output_scores = np.dot(hidden, self.W2)
-        output_probs = self.softmax(output_scores)
-        
-        return hidden, output_probs
-```
-
-### Step 5: Backpropagation and Training
-
-```python
-    def backward_pass(self, target_id, context_id, hidden, output_probs):
-        """Backward pass and weight updates"""
-        # Create target vector (one-hot for context word)
-        target_vector = np.zeros(self.vocab_size)
-        target_vector[context_id] = 1
-        
-        # Calculate error
-        error = output_probs - target_vector
-        
-        # Gradients
-        dW2 = np.outer(hidden, error)
-        dW1_hidden = np.dot(error, self.W2.T)
-        
-        # One-hot vector for target word
-        input_vector = np.zeros(self.vocab_size)
-        input_vector[target_id] = 1
-        dW1 = np.outer(input_vector, dW1_hidden)
-        
-        # Update weights
-        self.W2 -= self.learning_rate * dW2
-        self.W1 -= self.learning_rate * dW1
-        
-        # Calculate loss (cross-entropy)
-        loss = -np.log(output_probs[context_id] + 1e-10)
-        return loss
-    
-    def train(self, corpus, epochs=100):
-        """Train the word embedding model"""
-        # Build vocabulary and generate training data
-        self.build_vocabulary(corpus)
-        self.generate_training_data(corpus)
-        self.initialize_weights()
-        
-        print(f"Training for {epochs} epochs...")
-        
-        for epoch in range(epochs):
-            total_loss = 0
-            random.shuffle(self.training_pairs)
+        Returns:
+            List of cleaned tokens
+        """
+        try:
+            # Convert to lowercase and remove extra whitespace
+            text = text.lower().strip()
             
-            for target_id, context_id in self.training_pairs:
-                hidden, output_probs = self.forward_pass(target_id)
-                loss = self.backward_pass(target_id, context_id, hidden, output_probs)
-                total_loss += loss
+            # Remove special characters but keep basic punctuation
+            text = re.sub(r'[^\w\s\.\,\!\?\;\:]', '', text)
             
-            if epoch % 10 == 0:
-                avg_loss = total_loss / len(self.training_pairs)
-                print(f"Epoch {epoch}, Average Loss: {avg_loss:.4f}")
-        
-        print("Training completed!")
-    
-    def get_word_embedding(self, word):
-        """Get embedding vector for a word"""
-        if word not in self.word_to_id:
-            return None
-        
-        word_id = self.word_to_id[word]
-        # The embedding is the corresponding row in W1
-        return self.W1[word_id]
-    
-    def find_similar_words(self, word, top_k=5):
-        """Find most similar words using cosine similarity"""
-        if word not in self.word_to_id:
+            # Split into tokens
+            tokens = text.split()
+            
+            # Filter out very short tokens
+            tokens = [token for token in tokens if len(token) > 1]
+            
+            logger.info(f"Preprocessed text: {len(tokens)} tokens")
+            return tokens
+            
+        except Exception as e:
+            logger.error(f"Error in preprocessing: {e}")
             return []
+    
+    def build_vocabulary(self, texts: List[str]) -> None:
+        """
+        Build vocabulary from input texts with frequency filtering.
         
-        word_vec = self.get_word_embedding(word)
-        similarities = []
-        
-        for other_word in self.word_to_id:
-            if other_word != word:
-                other_vec = self.get_word_embedding(other_word)
-                # Cosine similarity
-                similarity = np.dot(word_vec, other_vec) / (
-                    np.linalg.norm(word_vec) * np.linalg.norm(other_vec)
-                )
-                similarities.append((other_word, similarity))
-        
-        # Sort by similarity and return top k
-        similarities.sort(key=lambda x: x[1], reverse=True)
-        return similarities[:top_k]
+        Args:
+            texts: List of input text documents
+        """
+        try:
+            logger.info("Building vocabulary...")
+            
+            # Count word frequencies across all texts
+            for text in texts:
+                tokens = self.preprocess_text(text)
+                self.word_counts.update(tokens)
+            
+            # Filter by minimum count
+            filtered_words = {word: count for word, count in self.word_counts.items() 
+                            if count >= self.min_count}
+            
+            # Create word-to-index mappings
+            self.word_to_idx = {word: idx for idx, word in enumerate(filtered_words.keys())}
+            self.idx_to_word = {idx: word for word, idx in self.word_to_idx.items()}
+            self.vocab_size = len(self.word_to_idx)
+            
+            logger.info(f"Built vocabulary: {self.vocab_size} words "
+                       f"(filtered from {len(self.word_counts)} total)")
+            
+            if self.vocab_size == 0:
+                raise ValueError("Empty vocabulary after filtering. Lower min_count or provide more text.")
+                
+        except Exception as e:
+            logger.error(f"Error building vocabulary: {e}")
+            raise
 ```
 
-### Step 6: Let's Train Our Model!
+### 2. Training Data Generation
 
 ```python
-# Example usage
-corpus = [
-    "the cat sat on the mat",
-    "the dog ran in the park",
-    "cats and dogs are pets",
-    "the quick brown fox jumps over the lazy dog",
-    "a cat is a small animal",
-    "dogs are loyal animals",
-    "the mat is on the floor",
-    "animals live in the wild",
-    "pets need care and love",
-    "the brown cat likes to sit"
-]
-
-# Create and train the model
-trainer = WordEmbeddingTrainer(vector_size=50, window_size=2, learning_rate=0.1)
-trainer.train(corpus, epochs=200)
-
-# Test the embeddings
-print("Word embedding for 'cat':")
-cat_embedding = trainer.get_word_embedding('cat')
-print(cat_embedding[:10])  # Show first 10 dimensions
-
-print("\nWords similar to 'cat':")
-similar_to_cat = trainer.find_similar_words('cat', top_k=3)
-for word, similarity in similar_to_cat:
-    print(f"{word}: {similarity:.4f}")
+    def generate_training_data(self, texts: List[str]) -> None:
+        """
+        Generate (target, context) pairs for Skip-Gram training.
+        
+        For each word in the corpus, we create training pairs with surrounding words
+        within the context window. This implements the core Skip-Gram idea of 
+        predicting context from target.
+        
+        Args:
+            texts: List of input text documents
+        """
+        try:
+            logger.info("Generating training data...")
+            self.training_pairs = []
+            
+            for text in texts:
+                tokens = self.preprocess_text(text)
+                
+                # Convert to indices, skip unknown words
+                indices = []
+                for token in tokens:
+                    if token in self.word_to_idx:
+                        indices.append(self.word_to_idx[token])
+                
+                # Generate Skip-Gram pairs
+                for i, target_idx in enumerate(indices):
+                    # Define context window boundaries
+                    start = max(0, i - self.window_size)
+                    end = min(len(indices), i + self.window_size + 1)
+                    
+                    # Create pairs with all context words
+                    for j in range(start, end):
+                        if i != j:  # Skip the target word itself
+                            context_idx = indices[j]
+                            self.training_pairs.append((target_idx, context_idx))
+            
+            logger.info(f"Generated {len(self.training_pairs)} training pairs")
+            
+            if len(self.training_pairs) == 0:
+                raise ValueError("No training pairs generated. Check vocabulary and input texts.")
+                
+        except Exception as e:
+            logger.error(f"Error generating training data: {e}")
+            raise
 ```
 
-**Key Insight**: Each word gets its own unique embedding vector. The word "cat" will always have the same embedding regardless of the sentence it appears in!
+### 3. Negative Sampling Implementation
 
-## Chapter 3: The Sentence Embedding Question Answered
+Negative sampling, introduced in Mikolov et al. (2013), makes training computationally feasible by approximating the softmax with a few negative examples.
 
-Now let's address your core question with concrete examples:
+![Negative Sampling Illustration](/assets/images/word-embeddings/negative_sampling_illustration.png)
 
-### Scenario Analysis
-
-**Sentence 1**: "The cat sat" (3 words)
 ```python
-sentence_1_embeddings = [
-    trainer.get_word_embedding('the'),    # Vector 1: [0.1, 0.3, 0.7, ...]
-    trainer.get_word_embedding('cat'),    # Vector 2: [0.4, 0.1, 0.9, ...]
-    trainer.get_word_embedding('sat')     # Vector 3: [0.2, 0.8, 0.1, ...]
-]
-# Result: 3 separate embedding vectors
+    def negative_sampling(self, target_idx: int, positive_context: int) -> List[int]:
+        """
+        Generate negative samples using unigram distribution.
+        
+        Following Mikolov et al. (2013), we sample negative examples from a unigram
+        distribution raised to the 3/4 power, which gives better results than
+        uniform sampling.
+        
+        Args:
+            target_idx: Index of target word
+            positive_context: Index of positive context word
+            
+        Returns:
+            List of negative sample indices
+        """
+        try:
+            # Create probability distribution (unigram^0.75)
+            if not hasattr(self, '_negative_sampling_probs'):
+                word_freqs = np.array([self.word_counts[self.idx_to_word[i]] 
+                                     for i in range(self.vocab_size)])
+                word_freqs = np.power(word_freqs, 0.75)
+                self._negative_sampling_probs = word_freqs / np.sum(word_freqs)
+            
+            negative_samples = []
+            attempts = 0
+            max_attempts = self.negative_samples * 10  # Prevent infinite loops
+            
+            while len(negative_samples) < self.negative_samples and attempts < max_attempts:
+                # Sample from the distribution
+                candidate = np.random.choice(self.vocab_size, p=self._negative_sampling_probs)
+                
+                # Ensure it's not the target or positive context
+                if candidate != target_idx and candidate != positive_context:
+                    negative_samples.append(candidate)
+                
+                attempts += 1
+            
+            return negative_samples
+            
+        except Exception as e:
+            logger.error(f"Error in negative sampling: {e}")
+            return list(range(min(self.negative_samples, self.vocab_size)))
 ```
 
-**Sentence 2**: "The cat sat on" (4 words)
+### 4. Neural Network Training with Gradient Descent
+
 ```python
-sentence_2_embeddings = [
-    trainer.get_word_embedding('the'),    # Same as before!
-    trainer.get_word_embedding('cat'),    # Same as before!
-    trainer.get_word_embedding('sat'),    # Same as before!
-    trainer.get_word_embedding('on')      # New vector: [0.6, 0.2, 0.4, ...]
-]
-# Result: 4 separate embedding vectors (first 3 identical to sentence 1)
+    def sigmoid(self, x: np.ndarray) -> np.ndarray:
+        """Stable sigmoid function to prevent overflow."""
+        return np.where(x >= 0, 
+                       1 / (1 + np.exp(-x)), 
+                       np.exp(x) / (1 + np.exp(x)))
+    
+    def train_step(self, target_idx: int, context_idx: int) -> float:
+        """
+        Perform one training step using Skip-Gram with negative sampling.
+        
+        This implements the core learning algorithm:
+        1. Forward pass: compute predictions for positive and negative samples
+        2. Backward pass: compute gradients and update embeddings
+        
+        Args:
+            target_idx: Index of target word
+            context_idx: Index of context word
+            
+        Returns:
+            Loss for this training step
+        """
+        try:
+            # Get target word embedding
+            target_embedding = self.W1[target_idx]  # Shape: (embedding_dim,)
+            
+            # POSITIVE SAMPLE
+            # Compute positive score
+            positive_score = np.dot(target_embedding, self.W2[context_idx])
+            positive_prob = self.sigmoid(positive_score)
+            
+            # Compute positive loss: -log(σ(v_c · v_w))
+            positive_loss = -np.log(positive_prob + 1e-10)  # Add epsilon for stability
+            
+            # Positive gradient for context embedding
+            positive_error = positive_prob - 1  # d/dx of -log(sigmoid(x))
+            context_grad = positive_error * target_embedding
+            
+            # Positive gradient for target embedding
+            target_grad = positive_error * self.W2[context_idx]
+            
+            # NEGATIVE SAMPLES
+            negative_samples = self.negative_sampling(target_idx, context_idx)
+            negative_loss = 0
+            
+            for neg_idx in negative_samples:
+                # Compute negative score
+                negative_score = np.dot(target_embedding, self.W2[neg_idx])
+                negative_prob = self.sigmoid(-negative_score)  # Note the negative sign
+                
+                # Compute negative loss: -log(σ(-v_n · v_w))
+                negative_loss += -np.log(negative_prob + 1e-10)
+                
+                # Negative gradient for negative word embedding
+                negative_error = -(1 - negative_prob)  # d/dx of -log(sigmoid(-x))
+                self.W2[neg_idx] += self.learning_rate * negative_error * target_embedding
+                
+                # Add to target gradient
+                target_grad += negative_error * self.W2[neg_idx]
+            
+            # UPDATE EMBEDDINGS
+            # Update context word embedding
+            self.W2[context_idx] += self.learning_rate * context_grad
+            
+            # Update target word embedding
+            self.W1[target_idx] += self.learning_rate * target_grad
+            
+            total_loss = positive_loss + negative_loss
+            return total_loss
+            
+        except Exception as e:
+            logger.error(f"Error in training step: {e}")
+            return float('inf')
+    
+    def train(self, texts: List[str]) -> Dict[str, List[float]]:
+        """
+        Train word embeddings on the provided texts.
+        
+        Args:
+            texts: List of input text documents
+            
+        Returns:
+            Dictionary containing training metrics
+        """
+        try:
+            # Build vocabulary and generate training data
+            self.build_vocabulary(texts)
+            self.generate_training_data(texts)
+            
+            # Initialize embedding matrices
+            # Xavier initialization for better convergence
+            std_dev = np.sqrt(2.0 / (self.vocab_size + self.embedding_dim))
+            self.W1 = np.random.normal(0, std_dev, (self.vocab_size, self.embedding_dim))
+            self.W2 = np.random.normal(0, std_dev, (self.vocab_size, self.embedding_dim))
+            
+            logger.info(f"Starting training for {self.epochs} epochs...")
+            
+            # Training metrics
+            epoch_losses = []
+            
+            for epoch in range(self.epochs):
+                epoch_loss = 0
+                
+                # Shuffle training pairs for better convergence
+                random.shuffle(self.training_pairs)
+                
+                # Process each training pair
+                for i, (target_idx, context_idx) in enumerate(self.training_pairs):
+                    loss = self.train_step(target_idx, context_idx)
+                    epoch_loss += loss
+                    
+                    # Log progress periodically
+                    if i % 10000 == 0 and i > 0:
+                        avg_loss = epoch_loss / (i + 1)
+                        logger.info(f"Epoch {epoch+1}/{self.epochs}, "
+                                   f"Step {i}/{len(self.training_pairs)}, "
+                                   f"Avg Loss: {avg_loss:.4f}")
+                
+                # Calculate average loss for epoch
+                avg_epoch_loss = epoch_loss / len(self.training_pairs)
+                epoch_losses.append(avg_epoch_loss)
+                
+                # Decay learning rate
+                self.learning_rate *= 0.95
+                
+                logger.info(f"Completed epoch {epoch+1}/{self.epochs}, "
+                           f"Average Loss: {avg_epoch_loss:.4f}")
+            
+            logger.info("Training completed successfully!")
+            
+            return {
+                'epoch_losses': epoch_losses,
+                'final_vocab_size': self.vocab_size,
+                'training_pairs': len(self.training_pairs)
+            }
+            
+        except Exception as e:
+            logger.error(f"Error during training: {e}")
+            raise
 ```
 
-### How to Create Sentence-Level Embeddings
+![Training Curves](/assets/images/word-embeddings/training_curves.png)
 
-To get ONE embedding for the entire sentence, you need to **combine** the word embeddings:
+## Byte Pair Encoding (BPE): Handling Subword Units
 
-```python
-def create_sentence_embedding(trainer, sentence, method='average'):
-    """Create a single embedding for an entire sentence"""
-    words = trainer.preprocess_text(sentence)
-    word_embeddings = []
-    
-    for word in words:
-        embedding = trainer.get_word_embedding(word)
-        if embedding is not None:
-            word_embeddings.append(embedding)
-    
-    if not word_embeddings:
-        return None
-    
-    word_embeddings = np.array(word_embeddings)
-    
-    if method == 'average':
-        # Simple average of all word vectors
-        return np.mean(word_embeddings, axis=0)
-    
-    elif method == 'weighted_average':
-        # Weight by inverse frequency (TF-IDF style)
-        weights = []
-        for word in words:
-            if word in trainer.word_counts:
-                # Higher weight for rarer words
-                weight = 1.0 / trainer.word_counts[word]
-                weights.append(weight)
-        
-        weights = np.array(weights)
-        weights = weights / np.sum(weights)  # Normalize
-        
-        return np.average(word_embeddings, axis=0, weights=weights)
-    
-    elif method == 'max_pooling':
-        # Take maximum value for each dimension
-        return np.max(word_embeddings, axis=0)
+Traditional word-level tokenization struggles with out-of-vocabulary words and morphologically rich languages. BPE, introduced by Sennrich et al. (2016) ([Neural Machine Translation of Rare Words with Subword Units](https://arxiv.org/abs/1508.07909)), provides an elegant solution through subword tokenization.
 
-# Example usage
-sentence1 = "The cat sat"
-sentence2 = "The cat sat on the mat"
+![BPE Tokenization Process](/assets/images/word-embeddings/bpe_tokenization_process.png)
 
-sent1_embedding = create_sentence_embedding(trainer, sentence1, 'average')
-sent2_embedding = create_sentence_embedding(trainer, sentence2, 'average')
+The algorithm, originally developed by Gage (1994) for data compression ([A New Algorithm for Data Compression](https://www.derczynski.com/papers/archive/BPE_Gage.pdf)), iteratively merges the most frequent character pairs.
 
-print(f"Sentence 1 embedding shape: {sent1_embedding.shape}")
-print(f"Sentence 2 embedding shape: {sent2_embedding.shape}")
-
-# Calculate similarity between sentences
-similarity = np.dot(sent1_embedding, sent2_embedding) / (
-    np.linalg.norm(sent1_embedding) * np.linalg.norm(sent2_embedding)
-)
-print(f"Similarity between sentences: {similarity:.4f}")
-```
-
-### The Answer Crystallized
-
-**For your 20-word sentence question**:
-
-1. **Individual word embeddings**: You get 20 separate embedding vectors, one for each word
-2. **Sentence embedding**: You get 1 combined embedding vector representing the entire sentence
-3. **When you add the 21st word**: You get the same 20 embeddings plus 1 new embedding for the new word
-
-**The key insight**: Word embeddings are **context-independent**. The word "cat" has the same embedding whether it appears in "The cat sat" or "A black cat sleeps."
-
-## Chapter 4: Byte Pair Encoding (BPE) - The Subword Revolution
-
-Now let's tackle BPE, which revolutionizes how we handle vocabulary and unknown words.
-
-### The Problem BPE Solves
-
-Traditional word embeddings have issues:
-- **Large vocabularies**: English has 500K+ words
-- **Out-of-vocabulary (OOV) words**: What about "ChatGPT" or "COVID-19"?
-- **Morphological variations**: "run", "running", "runs" get separate embeddings
-
-**BPE Solution**: Break words into subword units that balance between characters and words.
-
-### BPE Algorithm Implementation
+### BPE Implementation from Scratch
 
 ```python
-import re
-from collections import defaultdict, Counter
-
-class BPETokenizer:
-    def __init__(self, num_merges=1000):
-        self.num_merges = num_merges
-        self.word_freqs = {}
-        self.vocab = set()
-        self.merges = []
-        self.token_to_id = {}
-        self.id_to_token = {}
+class BytePairEncoder:
+    """
+    Byte Pair Encoding implementation for subword tokenization.
     
-    def get_word_tokens(self, word):
-        """Convert word to character tokens with end-of-word marker"""
-        return list(word) + ['</w>']
+    Based on Sennrich et al. (2016): "Neural Machine Translation of Rare Words 
+    with Subword Units" and the original BPE algorithm by Gage (1994).
+    """
     
-    def get_pairs(self, word_tokens):
-        """Get all adjacent pairs in the word"""
-        pairs = set()
-        prev_char = word_tokens[0]
-        for char in word_tokens[1:]:
-            pairs.add((prev_char, char))
-            prev_char = char
-        return pairs
+    def __init__(self, vocab_size: int = 10000):
+        """
+        Initialize BPE encoder.
+        
+        Args:
+            vocab_size: Target vocabulary size
+        """
+        self.vocab_size = vocab_size
+        self.merges = {}  # (pair) -> merged_token
+        self.vocab = set()  # Final vocabulary
+        
+        logger.info(f"Initialized BPE with target vocab size: {vocab_size}")
     
-    def train(self, corpus):
-        """Train BPE on corpus"""
-        print("Training BPE tokenizer...")
+    def get_word_tokens(self, word: str) -> List[str]:
+        """
+        Convert word to character-level tokens with end-of-word marker.
         
-        # Step 1: Get word frequencies
-        word_pattern = re.compile(r'\b\w+\b')
-        for text in corpus:
-            words = word_pattern.findall(text.lower())
-            for word in words:
-                self.word_freqs[word] = self.word_freqs.get(word, 0) + 1
-        
-        # Step 2: Initialize vocabulary with characters
-        vocab = defaultdict(int)
-        for word, freq in self.word_freqs.items():
-            word_tokens = self.get_word_tokens(word)
-            vocab[tuple(word_tokens)] += freq
-            # Add individual characters to vocabulary
-            for token in word_tokens:
-                self.vocab.add(token)
-        
-        print(f"Initial vocabulary size: {len(self.vocab)}")
-        
-        # Step 3: Iteratively merge most frequent pairs
-        for i in range(self.num_merges):
-            # Count all pairs
-            pairs = defaultdict(int)
-            for word_tokens, freq in vocab.items():
-                word_pairs = self.get_pairs(word_tokens)
-                for pair in word_pairs:
-                    pairs[pair] += freq
+        Args:
+            word: Input word
             
-            if not pairs:
-                break
-            
-            # Find most frequent pair
-            most_frequent_pair = max(pairs, key=pairs.get)
-            
-            # Merge the most frequent pair
-            new_vocab = {}
-            pattern = re.escape(' '.join(most_frequent_pair))
-            replacement = ''.join(most_frequent_pair)
-            
-            for word_tokens in vocab:
-                word_str = ' '.join(word_tokens)
-                new_word_str = re.sub(pattern, replacement, word_str)
-                new_word_tokens = tuple(new_word_str.split())
-                new_vocab[new_word_tokens] = vocab[word_tokens]
-            
-            vocab = new_vocab
-            self.merges.append(most_frequent_pair)
-            self.vocab.add(replacement)
-            
-            if i % 100 == 0:
-                print(f"Merge {i}: {most_frequent_pair} -> {replacement}")
-        
-        # Step 4: Create token-to-id mappings
-        vocab_list = list(self.vocab)
-        self.token_to_id = {token: i for i, token in enumerate(vocab_list)}
-        self.id_to_token = {i: token for token, i in self.token_to_id.items()}
-        
-        print(f"Final vocabulary size: {len(self.vocab)}")
-        print(f"Number of merges: {len(self.merges)}")
+        Returns:
+            List of character tokens
+        """
+        try:
+            # Add end-of-word marker to distinguish word boundaries
+            return list(word) + ['</w>']
+        except Exception as e:
+            logger.error(f"Error tokenizing word '{word}': {e}")
+            return ['</w>']
     
-    def tokenize_word(self, word):
-        """Tokenize a single word using learned BPE"""
-        word_tokens = self.get_word_tokens(word)
+    def get_pairs(self, word_tokens: List[str]) -> Set[Tuple[str, str]]:
+        """
+        Get all adjacent pairs in word tokens.
         
-        # Apply merges in the order they were learned
-        for pair in self.merges:
-            word_str = ' '.join(word_tokens)
-            pattern = re.escape(' '.join(pair))
-            replacement = ''.join(pair)
+        Args:
+            word_tokens: List of tokens
             
-            if re.search(pattern, word_str):
-                word_str = re.sub(pattern, replacement, word_str)
-                word_tokens = word_str.split()
-        
-        return word_tokens
+        Returns:
+            Set of adjacent pairs
+        """
+        try:
+            pairs = set()
+            prev_char = word_tokens[0]
+            
+            for char in word_tokens[1:]:
+                pairs.add((prev_char, char))
+                prev_char = char
+                
+            return pairs
+            
+        except Exception as e:
+            logger.error(f"Error getting pairs: {e}")
+            return set()
     
-    def encode(self, text):
-        """Encode text to token IDs"""
-        word_pattern = re.compile(r'\b\w+\b')
-        words = word_pattern.findall(text.lower())
+    def train(self, corpus: List[str]) -> Dict[str, int]:
+        """
+        Train BPE on the provided corpus.
         
-        token_ids = []
-        for word in words:
-            word_tokens = self.tokenize_word(word)
-            for token in word_tokens:
-                if token in self.token_to_id:
-                    token_ids.append(self.token_to_id[token])
+        Args:
+            corpus: List of words to train on
+            
+        Returns:
+            Final vocabulary with frequencies
+        """
+        try:
+            logger.info("Starting BPE training...")
+            
+            # Initialize word frequency dictionary
+            word_freqs = Counter(corpus)
+            
+            # Convert words to character tokens
+            word_tokens = {}
+            for word in word_freqs.keys():
+                word_tokens[word] = self.get_word_tokens(word)
+            
+            # Initial vocabulary (all characters)
+            self.vocab = set()
+            for tokens in word_tokens.values():
+                self.vocab.update(tokens)
+            
+            logger.info(f"Initial character vocabulary size: {len(self.vocab)}")
+            
+            # Iteratively merge most frequent pairs
+            merge_count = 0
+            while len(self.vocab) < self.vocab_size:
+                # Count all pairs
+                pair_counts = defaultdict(int)
+                
+                for word, freq in word_freqs.items():
+                    word_token_list = word_tokens[word]
+                    pairs = self.get_pairs(word_token_list)
+                    
+                    for pair in pairs:
+                        pair_counts[pair] += freq
+                
+                # Find most frequent pair
+                if not pair_counts:
+                    logger.warning("No more pairs to merge")
+                    break
+                
+                best_pair = max(pair_counts, key=pair_counts.get)
+                best_freq = pair_counts[best_pair]
+                
+                # Merge the best pair
+                new_token = best_pair[0] + best_pair[1]
+                self.merges[best_pair] = new_token
+                self.vocab.add(new_token)
+                
+                # Update word tokens
+                for word in word_tokens:
+                    word_tokens[word] = self.merge_tokens(word_tokens[word], best_pair, new_token)
+                
+                merge_count += 1
+                
+                if merge_count % 100 == 0:
+                    logger.info(f"Merge {merge_count}: '{best_pair[0]}' + '{best_pair[1]}' -> "
+                               f"'{new_token}' (freq: {best_freq})")
+            
+            logger.info(f"BPE training completed. Final vocabulary size: {len(self.vocab)}")
+            
+            # Return vocabulary with frequencies
+            vocab_freqs = {}
+            for word, freq in word_freqs.items():
+                tokens = self.encode_word(word)
+                for token in tokens:
+                    vocab_freqs[token] = vocab_freqs.get(token, 0) + freq
+            
+            return vocab_freqs
+            
+        except Exception as e:
+            logger.error(f"Error during BPE training: {e}")
+            raise
+    
+    def merge_tokens(self, tokens: List[str], pair: Tuple[str, str], 
+                    new_token: str) -> List[str]:
+        """
+        Merge specified pair in token list.
+        
+        Args:
+            tokens: List of tokens
+            pair: Pair to merge
+            new_token: Replacement token
+            
+        Returns:
+            Updated token list
+        """
+        try:
+            new_tokens = []
+            i = 0
+            
+            while i < len(tokens):
+                if (i < len(tokens) - 1 and 
+                    tokens[i] == pair[0] and tokens[i + 1] == pair[1]):
+                    # Merge the pair
+                    new_tokens.append(new_token)
+                    i += 2  # Skip both tokens
                 else:
-                    # Handle unknown tokens - split into characters
-                    for char in token:
-                        if char in self.token_to_id:
-                            token_ids.append(self.token_to_id[char])
-        
-        return token_ids
+                    new_tokens.append(tokens[i])
+                    i += 1
+            
+            return new_tokens
+            
+        except Exception as e:
+            logger.error(f"Error merging tokens: {e}")
+            return tokens
     
-    def decode(self, token_ids):
-        """Decode token IDs back to text"""
-        tokens = [self.id_to_token[id] for id in token_ids if id in self.id_to_token]
-        text = ''.join(tokens).replace('</w>', ' ')
-        return text.strip()
-
-# Example usage
-corpus = [
-    "the quick brown fox jumps over the lazy dog",
-    "a quick brown dog jumps quickly",
-    "the fox runs quickly through the forest",
-    "running and jumping are good exercises",
-    "the runner runs faster than the walker",
-    "quickly running foxes jump over logs"
-]
-
-# Train BPE
-bpe = BPETokenizer(num_merges=20)
-bpe.train(corpus)
-
-# Test tokenization
-test_word = "running"
-tokens = bpe.tokenize_word(test_word)
-print(f"'{test_word}' -> {tokens}")
-
-test_word = "jumping"
-tokens = bpe.tokenize_word(test_word)
-print(f"'{test_word}' -> {tokens}")
-
-# Test encoding/decoding
-test_sentence = "the fox is running quickly"
-encoded = bpe.encode(test_sentence)
-decoded = bpe.decode(encoded)
-print(f"Original: {test_sentence}")
-print(f"Encoded: {encoded}")
-print(f"Decoded: {decoded}")
+    def encode_word(self, word: str) -> List[str]:
+        """
+        Encode a word using learned BPE merges.
+        
+        Args:
+            word: Word to encode
+            
+        Returns:
+            List of subword tokens
+        """
+        try:
+            tokens = self.get_word_tokens(word)
+            
+            # Apply merges in order
+            for pair, new_token in self.merges.items():
+                tokens = self.merge_tokens(tokens, pair, new_token)
+            
+            return tokens
+            
+        except Exception as e:
+            logger.error(f"Error encoding word '{word}': {e}")
+            return [word, '</w>']
+    
+    def encode_text(self, text: str) -> List[str]:
+        """
+        Encode entire text using BPE.
+        
+        Args:
+            text: Input text
+            
+        Returns:
+            List of subword tokens
+        """
+        try:
+            words = text.lower().split()
+            all_tokens = []
+            
+            for word in words:
+                # Remove punctuation for this example
+                clean_word = re.sub(r'[^\w]', '', word)
+                if clean_word:
+                    tokens = self.encode_word(clean_word)
+                    all_tokens.extend(tokens)
+            
+            return all_tokens
+            
+        except Exception as e:
+            logger.error(f"Error encoding text: {e}")
+            return []
 ```
 
-### BPE + Word Embeddings: The Perfect Marriage
+## Word Similarity and Clustering Analysis
+
+Once we have trained embeddings, we can analyze semantic relationships through various mathematical operations.
+
+![Similarity Matrix](/assets/images/word-embeddings/similarity_matrix.png)
+
+### Similarity Computation and Evaluation
 
 ```python
-class BPEWordEmbedding:
-    def __init__(self, vector_size=100):
-        self.bpe_tokenizer = None
-        self.embeddings = None
-        self.vector_size = vector_size
-    
-    def train(self, corpus, bpe_merges=1000, embedding_epochs=100):
-        """Train both BPE tokenizer and embeddings"""
-        # Step 1: Train BPE tokenizer
-        self.bpe_tokenizer = BPETokenizer(num_merges=bpe_merges)
-        self.bpe_tokenizer.train(corpus)
+    def get_word_vector(self, word: str) -> np.ndarray:
+        """
+        Get the embedding vector for a specific word.
         
-        # Step 2: Create subword corpus for embedding training
-        subword_corpus = []
-        for text in corpus:
-            tokens = self.bpe_tokenizer.encode(text)
-            token_words = [self.bpe_tokenizer.id_to_token[id] for id in tokens]
-            subword_corpus.append(' '.join(token_words))
-        
-        # Step 3: Train embeddings on subword tokens
-        embedding_trainer = WordEmbeddingTrainer(
-            vector_size=self.vector_size,
-            window_size=2,
-            learning_rate=0.1
-        )
-        embedding_trainer.train(subword_corpus, epochs=embedding_epochs)
-        
-        self.embeddings = embedding_trainer
-    
-    def get_word_embedding(self, word):
-        """Get embedding for a word by combining subword embeddings"""
-        if not self.bpe_tokenizer or not self.embeddings:
-            raise ValueError("Model not trained yet")
-        
-        # Tokenize word into subwords
-        subword_tokens = self.bpe_tokenizer.tokenize_word(word)
-        
-        # Get embeddings for each subword
-        subword_embeddings = []
-        for token in subword_tokens:
-            embedding = self.embeddings.get_word_embedding(token)
-            if embedding is not None:
-                subword_embeddings.append(embedding)
-        
-        if not subword_embeddings:
-            return None
-        
-        # Average the subword embeddings
-        return np.mean(subword_embeddings, axis=0)
-    
-    def handle_unknown_word(self, word):
-        """Handle words not seen during training"""
-        # BPE can handle any word by breaking it into known subwords
-        return self.get_word_embedding(word)
-
-# Example usage
-bpe_embedder = BPEWordEmbedding(vector_size=50)
-bpe_embedder.train(corpus, bpe_merges=20, embedding_epochs=100)
-
-# Test with known and unknown words
-print("Embedding for 'running':")
-running_emb = bpe_embedder.get_word_embedding('running')
-print(running_emb[:10])
-
-print("\nEmbedding for 'ChatGPT' (unknown word):")
-chatgpt_emb = bpe_embedder.handle_unknown_word('ChatGPT')
-print(chatgpt_emb[:10] if chatgpt_emb is not None else "Could not generate embedding")
-```
-
-## Chapter 5: Advanced Embedding Concepts
-
-### Position-Aware Embeddings
-
-One limitation of basic word embeddings: they ignore word position. "Dog bites man" vs "Man bites dog" have the same word embeddings but different meanings!
-
-```python
-class PositionalEmbedding:
-    def __init__(self, max_length=100, embedding_dim=100):
-        self.max_length = max_length
-        self.embedding_dim = embedding_dim
-        self.positional_encodings = self._generate_positional_encodings()
-    
-    def _generate_positional_encodings(self):
-        """Generate sinusoidal positional encodings"""
-        pe = np.zeros((self.max_length, self.embedding_dim))
-        
-        for pos in range(self.max_length):
-            for i in range(0, self.embedding_dim, 2):
-                pe[pos, i] = np.sin(pos / (10000 ** (i / self.embedding_dim)))
-                if i + 1 < self.embedding_dim:
-                    pe[pos, i + 1] = np.cos(pos / (10000 ** (i / self.embedding_dim)))
-        
-        return pe
-    
-    def add_positional_encoding(self, word_embeddings, positions):
-        """Add positional encoding to word embeddings"""
-        enhanced_embeddings = []
-        
-        for word_emb, pos in zip(word_embeddings, positions):
-            if pos < self.max_length:
-                pos_encoding = self.positional_encodings[pos]
-                enhanced_emb = word_emb + pos_encoding
-                enhanced_embeddings.append(enhanced_emb)
+        Args:
+            word: Target word
+            
+        Returns:
+            Word embedding vector or None if word not in vocabulary
+        """
+        try:
+            if word in self.word_to_idx:
+                return self.W1[self.word_to_idx[word]]
             else:
-                enhanced_embeddings.append(word_emb)
+                logger.warning(f"Word '{word}' not in vocabulary")
+                return None
+        except Exception as e:
+            logger.error(f"Error getting vector for '{word}': {e}")
+            return None
+    
+    def cosine_similarity(self, word1: str, word2: str) -> float:
+        """
+        Calculate cosine similarity between two words.
         
-        return np.array(enhanced_embeddings)
-
-# Example usage
-pos_embedder = PositionalEmbedding(max_length=50, embedding_dim=50)
-
-# Get word embeddings for a sentence
-sentence = "the cat sat on the mat"
-words = sentence.split()
-word_embeddings = []
-positions = []
-
-for i, word in enumerate(words):
-    emb = trainer.get_word_embedding(word)
-    if emb is not None:
-        word_embeddings.append(emb)
-        positions.append(i)
-
-# Add positional information
-enhanced_embeddings = pos_embedder.add_positional_encoding(word_embeddings, positions)
-print(f"Enhanced embeddings shape: {enhanced_embeddings.shape}")
+        Cosine similarity is the standard metric for word embedding similarity:
+        cos(θ) = (A · B) / (||A|| * ||B||)
+        
+        Args:
+            word1: First word
+            word2: Second word
+            
+        Returns:
+            Cosine similarity score (-1 to 1)
+        """
+        try:
+            vec1 = self.get_word_vector(word1)
+            vec2 = self.get_word_vector(word2)
+            
+            if vec1 is None or vec2 is None:
+                return 0.0
+            
+            # Calculate cosine similarity
+            dot_product = np.dot(vec1, vec2)
+            norm1 = np.linalg.norm(vec1)
+            norm2 = np.linalg.norm(vec2)
+            
+            if norm1 == 0 or norm2 == 0:
+                return 0.0
+            
+            similarity = dot_product / (norm1 * norm2)
+            return similarity
+            
+        except Exception as e:
+            logger.error(f"Error calculating similarity between '{word1}' and '{word2}': {e}")
+            return 0.0
+    
+    def find_similar_words(self, word: str, top_k: int = 10) -> List[Tuple[str, float]]:
+        """
+        Find most similar words to a given word.
+        
+        Args:
+            word: Target word
+            top_k: Number of similar words to return
+            
+        Returns:
+            List of (word, similarity_score) tuples
+        """
+        try:
+            target_vector = self.get_word_vector(word)
+            if target_vector is None:
+                return []
+            
+            similarities = []
+            
+            for vocab_word in self.word_to_idx.keys():
+                if vocab_word != word:
+                    similarity = self.cosine_similarity(word, vocab_word)
+                    similarities.append((vocab_word, similarity))
+            
+            # Sort by similarity and return top_k
+            similarities.sort(key=lambda x: x[1], reverse=True)
+            return similarities[:top_k]
+            
+        except Exception as e:
+            logger.error(f"Error finding similar words for '{word}': {e}")
+            return []
+    
+    def word_analogy(self, word_a: str, word_b: str, word_c: str) -> str:
+        """
+        Solve word analogies: A is to B as C is to ?
+        
+        Using vector arithmetic: embedding(B) - embedding(A) + embedding(C)
+        This implements the famous "king - man + woman = queen" relationship.
+        
+        Args:
+            word_a: First word in analogy
+            word_b: Second word in analogy  
+            word_c: Third word in analogy
+            
+        Returns:
+            Best candidate for the fourth word
+        """
+        try:
+            vec_a = self.get_word_vector(word_a)
+            vec_b = self.get_word_vector(word_b)
+            vec_c = self.get_word_vector(word_c)
+            
+            if any(v is None for v in [vec_a, vec_b, vec_c]):
+                logger.warning("One or more words not in vocabulary")
+                return ""
+            
+            # Calculate target vector: B - A + C
+            target_vector = vec_b - vec_a + vec_c
+            
+            # Find most similar word to target vector
+            best_similarity = -1
+            best_word = ""
+            
+            for word in self.word_to_idx.keys():
+                if word in [word_a, word_b, word_c]:
+                    continue
+                
+                word_vector = self.get_word_vector(word)
+                if word_vector is not None:
+                    similarity = np.dot(target_vector, word_vector) / (
+                        np.linalg.norm(target_vector) * np.linalg.norm(word_vector)
+                    )
+                    
+                    if similarity > best_similarity:
+                        best_similarity = similarity
+                        best_word = word
+            
+            return best_word
+            
+        except Exception as e:
+            logger.error(f"Error solving analogy {word_a}:{word_b}::{word_c}:?: {e}")
+            return ""
 ```
 
-### Contextual vs Non-Contextual Embeddings
+## Visualization and Analysis
 
-**Key Distinction**:
-- **Non-contextual** (Word2Vec, GloVe): "bank" always has the same embedding
-- **Contextual** (BERT, GPT): "bank" has different embeddings in "river bank" vs "money bank"
+![t-SNE Embeddings](/assets/images/word-embeddings/tsne_embeddings.png)
 
-```python
-def demonstrate_context_dependency():
-    """Show why context matters"""
-    sentences = [
-        "I went to the bank to deposit money",
-        "I sat by the river bank to fish",
-        "The bank loan was approved quickly"
-    ]
-    
-    # With non-contextual embeddings, "bank" is always the same
-    bank_embedding = trainer.get_word_embedding('bank')
-    print("Non-contextual 'bank' embedding (same for all contexts):")
-    print(bank_embedding[:10])
-    
-    # In reality, we need different representations for different meanings
-    print("\nIn contextual embeddings, 'bank' would have different vectors:")
-    print("Financial bank: [0.1, 0.8, 0.2, ...]")
-    print("River bank: [0.7, 0.1, 0.9, ...]")
-    print("Bank as institution: [0.3, 0.6, 0.4, ...]")
+The t-SNE visualization shows how semantically related words cluster together in the high-dimensional embedding space. This dimensionality reduction technique, introduced by van der Maaten and Hinton (2008) ([Visualizing Data using t-SNE](https://www.jmlr.org/papers/volume9/vandermaaten08a/vandermaaten08a.pdf)), helps us understand the learned semantic structure.
 
-demonstrate_context_dependency()
-```
-
-## Chapter 6: Real-World Applications and Performance
-
-### Embedding Quality Evaluation
+## Back to the Original Question: 20 Words = 20 Embeddings
 
 ```python
-def evaluate_embeddings(trainer, test_pairs):
-    """Evaluate embedding quality using word similarity tasks"""
-    
-    similarities = []
-    for word1, word2, expected_sim in test_pairs:
-        emb1 = trainer.get_word_embedding(word1)
-        emb2 = trainer.get_word_embedding(word2)
-        
-        if emb1 is not None and emb2 is not None:
-            # Cosine similarity
-            sim = np.dot(emb1, emb2) / (np.linalg.norm(emb1) * np.linalg.norm(emb2))
-            similarities.append((word1, word2, sim, expected_sim))
-    
-    return similarities
-
-# Test with word pairs
-test_pairs = [
-    ("cat", "dog", 0.8),      # Both are pets
-    ("cat", "car", 0.1),      # Unrelated
-    ("king", "queen", 0.7),   # Related concepts
-    ("run", "walk", 0.6),     # Similar actions
-]
-
-results = evaluate_embeddings(trainer, test_pairs)
-for word1, word2, computed_sim, expected_sim in results:
-    print(f"{word1} - {word2}: computed={computed_sim:.3f}, expected={expected_sim:.3f}")
-```
-
-### Scaling to Large Vocabularies
-
-```python
-class EfficientEmbeddingTrainer:
-    """Memory and computationally efficient embedding trainer"""
-    
-    def __init__(self, vector_size=100, negative_samples=5):
-        self.vector_size = vector_size
-        self.negative_samples = negative_samples
-        # Use hierarchical softmax or negative sampling for efficiency
-    
-    def negative_sampling_loss(self, target_emb, context_emb, negative_embs):
-        """Compute loss using negative sampling"""
-        # Positive example
-        positive_score = np.dot(target_emb, context_emb)
-        positive_loss = -np.log(self.sigmoid(positive_score))
-        
-        # Negative examples
-        negative_loss = 0
-        for neg_emb in negative_embs:
-            negative_score = np.dot(target_emb, neg_emb)
-            negative_loss += -np.log(self.sigmoid(-negative_score))
-        
-        return positive_loss + negative_loss
-    
-    def sigmoid(self, x):
-        """Sigmoid activation function"""
-        return 1 / (1 + np.exp(-np.clip(x, -500, 500)))
-```
-
-## Chapter 7: The Complete Picture - Answering All Your Questions
-
-Let's revisit your original questions with complete clarity:
-
-### Question 1: Sentence with 20 words → How many embeddings?
-
-**Answer**: You get **20 individual word embeddings**, not one combined embedding.
-
-```python
-def demonstrate_word_vs_sentence_embeddings():
+def demonstrate_individual_embeddings():
+    """
+    Demonstrate that each word gets its own embedding, even in a sentence.
+    """
+    # Example sentence
     sentence = "The quick brown fox jumps over the lazy dog and runs fast"
-    words = sentence.split()
+    words = sentence.lower().split()
     
     print(f"Sentence: '{sentence}'")
     print(f"Number of words: {len(words)}")
-    print(f"You get: {len(words)} separate word embeddings")
+    print(f"Words: {words}")
     
-    # Individual word embeddings
-    word_embeddings = []
+    # Each word gets its own embedding
+    embeddings = []
     for i, word in enumerate(words):
-        emb = trainer.get_word_embedding(word.lower())
-        if emb is not None:
-            word_embeddings.append(emb)
-            print(f"Word {i+1}: '{word}' -> embedding vector of shape {emb.shape}")
-    
-    # To get ONE sentence embedding, you combine these:
-    if word_embeddings:
-        sentence_embedding = np.mean(word_embeddings, axis=0)
-        print(f"\nCombined sentence embedding shape: {sentence_embedding.shape}")
-        print("This is ONE vector representing the entire sentence")
-
-demonstrate_word_vs_sentence_embeddings()
-```
-
-### Question 2: Adding words to the sentence
-
-```python
-def demonstrate_incremental_sentence_building():
-    """Show what happens when you keep adding words"""
-    
-    base_sentence = "The cat"
-    additions = ["sat", "on", "the", "mat", "quietly"]
-    
-    for i in range(len(additions) + 1):
-        if i == 0:
-            current_sentence = base_sentence
+        embedding = trainer.get_word_vector(word)
+        if embedding is not None:
+            embeddings.append(embedding)
+            print(f"Word {i+1}: '{word}' -> {embedding.shape} embedding")
         else:
-            current_sentence = base_sentence + " " + " ".join(additions[:i])
-        
-        words = current_sentence.split()
-        print(f"\nSentence {i+1}: '{current_sentence}'")
-        print(f"Words: {len(words)}")
-        print(f"Individual embeddings: {len(words)}")
-        
-        # Show that previous word embeddings remain the same
-        if i > 0:
-            print("Note: The embeddings for 'The' and 'cat' are IDENTICAL to previous iterations!")
+            print(f"Word {i+1}: '{word}' -> Not in vocabulary")
+    
+    print(f"\nTotal embeddings created: {len(embeddings)}")
+    print("Each word maintains its individual vector representation!")
+    
+    # To get a sentence-level representation, you would typically:
+    # 1. Average the word embeddings (mean pooling)
+    # 2. Use weighted averaging (TF-IDF weights)
+    # 3. Use more sophisticated methods (attention mechanisms)
+    
+    if embeddings:
+        sentence_embedding = np.mean(embeddings, axis=0)
+        print(f"\nSentence embedding (mean pooling): {sentence_embedding.shape}")
 
-demonstrate_incremental_sentence_building()
+# Run the demonstration
+demonstrate_individual_embeddings()
 ```
 
-### Question 3: BPE Impact on Embeddings
+**Key Insight**: Each word in a sentence produces its own embedding vector. For sentence-level representations, we combine these individual embeddings through techniques like:
+
+1. **Mean Pooling**: Average all word embeddings
+2. **Weighted Averaging**: Use TF-IDF or attention weights
+3. **LSTM/Transformer Encoders**: Learn contextual combinations
+
+## Practical Usage Example
 
 ```python
-def demonstrate_bpe_vs_word_embeddings():
-    """Compare word-level vs BPE embeddings"""
+def complete_example():
+    """Complete example showing the entire pipeline."""
     
-    word = "unhappiness"
+    # Sample corpus (in practice, use much larger datasets)
+    corpus = [
+        "The cat sat on the mat and looked around",
+        "A dog ran quickly through the park",
+        "Machine learning algorithms process data efficiently",
+        "Neural networks learn complex patterns from examples",
+        "Natural language processing enables computer understanding",
+        "Deep learning models require large amounts of training data",
+        "The quick brown fox jumps over the lazy dog",
+        "Artificial intelligence will transform many industries",
+        "Python programming language is popular for data science",
+        "Word embeddings capture semantic relationships between words"
+    ]
     
-    print(f"Word: '{word}'")
+    # Initialize and train
+    trainer = WordEmbeddingTrainer(
+        embedding_dim=100,  # Smaller for demo
+        window_size=3,
+        negative_samples=3,
+        learning_rate=0.01,
+        min_count=2,
+        epochs=20
+    )
     
-    # Traditional word embedding (if word exists in vocabulary)
-    word_emb = trainer.get_word_embedding(word)
-    if word_emb is not None:
-        print(f"Word-level embedding: Single vector of shape {word_emb.shape}")
-    else:
-        print("Word-level embedding: NOT FOUND (out of vocabulary)")
+    # Train the model
+    metrics = trainer.train(corpus)
     
-    # BPE tokenization
-    if bpe_embedder.bpe_tokenizer:
-        bpe_tokens = bpe_embedder.bpe_tokenizer.tokenize_word(word)
-        print(f"BPE tokens: {bpe_tokens}")
-        print(f"Number of subword embeddings: {len(bpe_tokens)}")
-        
-        bpe_emb = bpe_embedder.get_word_embedding(word)
-        if bpe_emb is not None:
-            print(f"Combined BPE embedding: Single vector of shape {bpe_emb.shape}")
-            print("This is created by averaging the subword embeddings")
+    # Test similarity
+    print("\n=== Word Similarities ===")
+    test_words = ['learning', 'data', 'quick']
+    for word in test_words:
+        similar = trainer.find_similar_words(word, top_k=3)
+        print(f"Words similar to '{word}': {similar}")
+    
+    # Test analogies
+    print("\n=== Word Analogies ===")
+    analogies = [
+        ('machine', 'learning', 'natural'),
+        ('cat', 'dog', 'quick'),
+    ]
+    
+    for a, b, c in analogies:
+        result = trainer.word_analogy(a, b, c)
+        print(f"{a} : {b} :: {c} : {result}")
+    
+    # Save the model
+    trainer.save_model('word_embeddings_model.pkl')
+    print("\nModel saved successfully!")
 
-demonstrate_bpe_vs_word_embeddings()
+# Run complete example
+if __name__ == "__main__":
+    complete_example()
 ```
 
-## Conclusion: The Embedding Journey Complete
+## Computational Complexity and Optimization
 
-We've traveled from the basic question of "how many embeddings?" to building complete embedding systems from scratch. Here are the key takeaways:
+The training complexity is O(|C| × d × k) where:
+- |C| = corpus size
+- d = embedding dimension  
+- k = negative samples
 
-### Core Principles:
-1. **Each word gets its own embedding vector** - this is fundamental
-2. **Sentence embeddings are combinations of word embeddings** - averaging, weighted averaging, or more complex methods
-3. **BPE enables handling of unknown words** by breaking them into known subword pieces
-4. **Context independence** in traditional embeddings vs **context dependence** in modern models
+For large vocabularies, hierarchical softmax (Morin & Bengio, 2005) can reduce complexity from O(V) to O(log V) per training example.
 
-### Implementation Insights:
-- Word embeddings learn semantic relationships through co-occurrence patterns
-- The Skip-Gram model predicts context from target words
-- BPE solves the vocabulary explosion problem elegantly
-- Position encodings add order awareness to embeddings
+## Modern Extensions and Applications
 
-### The Answer to Your Original Question:
-**A 20-word sentence gives you 20 individual word embeddings.** To get one sentence-level embedding, you must explicitly combine these 20 vectors using methods like averaging, max pooling, or learned attention mechanisms.
+1. **Contextual Embeddings**: ELMo (Peters et al., 2018), BERT (Devlin et al., 2018)
+2. **Subword Models**: FastText (Bojanowski et al., 2017)
+3. **Cross-lingual Embeddings**: MUSE (Conneau et al., 2017)
+4. **Domain-specific Embeddings**: BioBERT, FinBERT, etc.
 
-When you add the 21st word, you get the same 20 embeddings plus one new embedding for the additional word. The beauty is in the compositionality—complex meanings emerge from combining simple word vectors.
+## References and Further Reading
 
-**Next time you see a sentence, remember**: it's not just text—it's a collection of high-dimensional vectors dancing together in semantic space, each word contributing its own mathematical signature to the overall meaning.
+1. **Mikolov, T., Chen, K., Corrado, G., & Dean, J. (2013)**. [Efficient Estimation of Word Representations in Vector Space](https://arxiv.org/abs/1301.3781). *arXiv preprint arXiv:1301.3781*.
 
----
+2. **Mikolov, T., Sutskever, I., Chen, K., Corrado, G. S., & Dean, J. (2013)**. [Distributed Representations of Words and Phrases and their Compositionality](https://arxiv.org/abs/1310.4546). *Advances in Neural Information Processing Systems*.
 
-*The journey from words to vectors reveals the elegant mathematical foundation underlying natural language understanding. Every word is a point in space, every sentence a constellation of meaning, and every embedding model a bridge between human language and machine comprehension.* 
+3. **Sennrich, R., Haddow, B., & Birch, A. (2016)**. [Neural Machine Translation of Rare Words with Subword Units](https://arxiv.org/abs/1508.07909). *Proceedings of ACL*.
+
+4. **Gage, P. (1994)**. [A New Algorithm for Data Compression](https://www.derczynski.com/papers/archive/BPE_Gage.pdf). *C Users Journal*.
+
+5. **Pennington, J., Socher, R., & Manning, C. D. (2014)**. [GloVe: Global Vectors for Word Representation](https://nlp.stanford.edu/pubs/glove.pdf). *Proceedings of EMNLP*.
+
+6. **Bojanowski, P., Grave, E., Joulin, A., & Mikolov, T. (2017)**. [Enriching Word Vectors with Subword Information](https://arxiv.org/abs/1607.04606). *Transactions of ACL*.
+
+## Conclusion
+
+Word embeddings form the foundation of modern NLP, transforming discrete symbols into meaningful numerical representations. Understanding their mechanics - from Skip-Gram training to BPE tokenization - provides crucial insights into how AI systems like ChatGPT process and understand language.
+
+**Remember**: Each word gets its own embedding, but the magic happens when we combine them intelligently to capture the meaning of larger linguistic units. This principle scales from simple averaging to the sophisticated attention mechanisms powering today's transformer models.
+
+The journey from words to vectors is more than a technical exercise - it's a bridge between human language and machine understanding, enabling the AI revolution we're witnessing today. 
