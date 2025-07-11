@@ -1,6 +1,14 @@
 // Blog posts configuration
 const blogPosts = [
     {
+        id: 'residual-analysis-timeseries',
+        title: 'Residual Analysis in Time Series: Validating Models and Uncovering Hidden Patterns',
+        date: '2025-01-25',
+        excerpt: 'Deep dive into residual analysis for time series models, covering statistical and machine learning approaches to validate, improve, and build confidence in forecasting systems.',
+        file: 'posts/residual-analysis-timeseries.md',
+        tags: ['Time Series', 'Residual Analysis', 'Model Validation', 'Statistics', 'Machine Learning', 'Diagnostics']
+    },
+    {
         id: 'timeseries-comprehensive-guide',
         title: 'Time Series Analysis: From Statistical Foundations to Neural Networks',
         date: '2020-01-20',
