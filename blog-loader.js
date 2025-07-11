@@ -9,6 +9,14 @@ const blogPosts = [
         tags: ['Time Series', 'Residual Analysis', 'Model Validation', 'Statistics', 'Machine Learning', 'Diagnostics']
     },
     {
+        id: 'word-embeddings-from-scratch',
+        title: 'Word Embeddings from Scratch: The Journey from Words to Vectors',
+        date: '2022-07-18',
+        excerpt: 'Build word embeddings from scratch without libraries, understand BPE encoding, and answer the fundamental question: does a 20-word sentence create 20 embeddings or one? Complete mathematical foundations with hands-on implementation.',
+        file: 'posts/word-embeddings-from-scratch.md',
+        tags: ['NLP', 'Word Embeddings', 'BPE', 'Neural Networks', 'From Scratch', 'Skip-Gram', 'Subword Tokenization']
+    },
+    {
         id: 'cyclical-encoding-deep-dive',
         title: 'Cyclical Encoding: Why Your Machine Learning Model Thinks December and January Are Worlds Apart',
         date: '2021-03-15',
