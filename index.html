@@ -1,72 +1,107 @@
----
-layout: home
-author_profile: true
-header:
-  image: "/images/main_header.jpg"
-  overlay_color: "#000"
-  overlay_filter: "0.5"
-  overlay_image: "/images/main_header.jpg"
-  actions:
-    - label: "Learn More About My Work"
-      url: "/about/"
-excerpt: "Technology Leader | Innovation Strategist | AI & GenAI Practitioner<br/>Leading AI transformation through collaborative innovation and cutting-edge technologies"
-intro: 
-  - excerpt: "Driving the future of AI through strategic leadership, generative AI solutions, and autonomous agentic systems. I help organizations harness the transformative power of artificial intelligence to create scalable, intelligent solutions that deliver real business value."
-feature_row:
-  - image_path: /images/ai_leadership.jpg
-    alt: "AI Leadership & Strategy"
-    title: "AI Leadership & Strategy"
-    excerpt: "Leading AI initiatives, defining technology roadmaps, and building high-performing teams that drive innovation in generative AI and agentic systems."
-    url: "/about/"
-    btn_label: "Learn More"
-    btn_class: "btn--primary"
-  - image_path: /images/genai_solutions.jpg
-    alt: "Generative AI Solutions"
-    title: "Generative AI Solutions"
-    excerpt: "Implementing cutting-edge GenAI applications including LLMs, prompt engineering, content generation, and intelligent automation systems."
-    url: "/machine-learning/"
-    btn_label: "Explore Projects"
-    btn_class: "btn--primary"
-  - image_path: /images/agentic_ai.jpg
-    alt: "Agentic AI Systems"
-    title: "Agentic AI Systems"
-    excerpt: "Building autonomous AI agents, multi-agent collaborative systems, and reasoning frameworks that can plan, execute, and adapt independently."
-    url: "/about/"
-    btn_label: "Discover More"
-    btn_class: "btn--primary"
----
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Page - Prasenjit Giri</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+            background-color: #f4f4f4;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+        }
+        .timestamp {
+            background: #3498db;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+            margin: 20px 0;
+            font-weight: bold;
+        }
+        .content {
+            background: #ecf0f1;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .status {
+            background: #27ae60;
+            color: white;
+            padding: 15px;
+            border-radius: 5px;
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Test Deployment - Prasenjit Giri</h1>
+        
+        <div class="status">
+            ✅ DEPLOYMENT TEST SUCCESSFUL!
+        </div>
+        
+        <div class="timestamp">
+            Deployed: <span id="timestamp"></span>
+        </div>
+        
+        <div class="content">
+            <h2>About This Test</h2>
+            <p>This is a simple HTML test page to verify that GitHub Pages deployment is working correctly.</p>
+            
+            <h3>What We're Testing:</h3>
+            <ul>
+                <li>✅ Basic HTML rendering</li>
+                <li>✅ CSS styling</li>
+                <li>✅ JavaScript functionality</li>
+                <li>✅ GitHub Pages deployment pipeline</li>
+                <li>✅ Cache bypassing</li>
+            </ul>
+            
+            <h3>Professional Info:</h3>
+            <p><strong>Prasenjit Giri</strong><br>
+            Technology Lead | Innovation Strategist | AI & GenAI Practitioner</p>
+            
+            <p>Specializing in:</p>
+            <ul>
+                <li>AI Leadership & Strategy</li>
+                <li>Generative AI Solutions</li>
+                <li>Agentic AI Systems</li>
+                <li>Collaborative Innovation</li>
+            </ul>
+        </div>
+        
+        <div style="text-align: center; margin-top: 30px; padding: 20px; background: #34495e; color: white; border-radius: 5px;">
+            <p><strong>If you can see this page, the deployment is working! 🎉</strong></p>
+            <p>GitHub Repository: <a href="https://github.com/PrasenjitGiri/prasenjitgiri.github.io" style="color: #3498db;">prasenjitgiri.github.io</a></p>
+        </div>
+    </div>
 
-## Welcome to My AI Innovation Hub
-
-I'm **Prasenjit Giri**, a Technology Leader and Innovation Strategist passionate about transforming organizations through the strategic application of artificial intelligence. With deep expertise in **Generative AI**, **Agentic AI systems**, and **collaborative leadership**, I help teams and organizations navigate the complex AI landscape to build solutions that make a real difference.
-
-### What I Bring to the Table
-
- **Strategic AI Leadership** - Guiding organizations through AI transformation journeys  
- **Generative AI Expertise** - LLMs, prompt engineering, and automated content systems  
- **Agentic AI Development** - Autonomous agents and multi-agent collaborative frameworks  
- **Collaborative Innovation** - Building high-performing teams and fostering innovation culture  
- **Business Impact** - Aligning AI initiatives with strategic business objectives  
-
-### Current Focus Areas
-
-I'm currently at the forefront of the AI revolution, working on:
-
-- **Enterprise GenAI Integration** - Helping organizations adopt and scale generative AI technologies
-- **Autonomous AI Systems** - Developing sophisticated agents capable of independent reasoning and execution
-- **AI Governance & Ethics** - Establishing frameworks for responsible AI development
-- **Innovation Leadership** - Building collaborative environments where breakthrough AI solutions emerge
-
-{% include feature_row id="intro" type="center" %}
-
-{% include feature_row %}
-
-### Let's Build the Future Together
-
-Whether you're looking to **transform your organization** with AI, **develop innovative solutions**, or **build high-performing AI teams**, I'm here to collaborate and create meaningful impact.
-
-Ready to explore the possibilities? [Let's connect and discuss your AI journey →](/about/)
-
----
-
-*"Innovation happens when diverse minds collaborate to solve meaningful problems with purpose and responsibility."*
+    <script>
+        // Display current timestamp
+        document.getElementById('timestamp').textContent = new Date().toLocaleString();
+        
+        // Add some interactivity
+        console.log('🚀 Test page loaded successfully!');
+        console.log('Timestamp:', new Date().toISOString());
+    </script>
+</body>
+</html>
