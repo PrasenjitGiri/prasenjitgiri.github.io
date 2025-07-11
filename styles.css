@@ -781,13 +781,41 @@ footer {
     color: #e74c3c;
 }
 
+/* Fix for code blocks - override inline code styling inside pre blocks */
 .article-content pre {
     background: #2c3e50;
     color: white;
     padding: 20px;
-    border-radius: 5px;
+    border-radius: 8px;
     overflow-x: auto;
     margin: 20px 0;
+    border: none;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.article-content pre code {
+    background: transparent !important;
+    color: inherit !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+/* Improve syntax highlighting for code blocks */
+.article-content pre {
+    position: relative;
+}
+
+.article-content pre::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #3498db, #2ecc71, #f39c12, #e74c3c);
+    border-radius: 8px 8px 0 0;
 }
 
 /* Responsive Design */

@@ -9,6 +9,14 @@ const blogPosts = [
         tags: ['Time Series', 'Residual Analysis', 'Model Validation', 'Statistics', 'Machine Learning', 'Diagnostics']
     },
     {
+        id: 'cyclical-encoding-deep-dive',
+        title: 'Cyclical Encoding: Why Your Machine Learning Model Thinks December and January Are Worlds Apart',
+        date: '2021-03-15',
+        excerpt: 'A creative exploration of cyclical encoding using sine and cosine transformations. Discover why traditional integer encoding fails for time-based features and how trigonometry saves the day.',
+        file: 'posts/cyclical-encoding-deep-dive.md',
+        tags: ['Feature Engineering', 'Cyclical Encoding', 'Time Series', 'Machine Learning', 'Data Preprocessing', 'Trigonometry']
+    },
+    {
         id: 'timeseries-comprehensive-guide',
         title: 'Time Series Analysis: From Statistical Foundations to Neural Networks',
         date: '2020-01-20',
