@@ -131,12 +131,12 @@ Before selecting an indexing strategy, clearly define:
 
 | Requirement | HNSW | IVF | PQ | LSH |
 |-------------|------|-----|----|----|
-| High Accuracy (>95% recall) | ✅ | ⚠️ | ❌ | ⚠️ |
-| Low Memory Usage | ❌ | ⚠️ | ✅ | ⚠️ |
-| Fast Queries (<10ms) | ✅ | ✅ | ✅ | ⚠️ |
-| Large Scale (>10M vectors) | ⚠️ | ✅ | ✅ | ✅ |
-| Frequent Updates | ⚠️ | ❌ | ❌ | ✅ |
-| Simple Implementation | ❌ | ⚠️ | ❌ | ✅ |
+| High Accuracy (>95% recall) | Yes | Moderate | No | Moderate |
+| Low Memory Usage | No | Moderate | Yes | Moderate |
+| Fast Queries (<10ms) | Yes | Yes | Yes | Moderate |
+| Large Scale (>10M vectors) | Moderate | Yes | Yes | Yes |
+| Frequent Updates | Moderate | No | No | Yes |
+| Simple Implementation | No | Moderate | No | Yes |
 
 ### 3. Hybrid Approaches
 
