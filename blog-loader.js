@@ -1,6 +1,14 @@
 // Blog posts configuration
 const blogPosts = [
     {
+        id: 'timeseries-comprehensive-guide',
+        title: 'Time Series Analysis: From Statistical Foundations to Neural Networks',
+        date: '2025-01-20',
+        excerpt: 'A comprehensive guide covering the entire spectrum of time series analysis from classical statistical methods to cutting-edge neural network architectures.',
+        file: 'posts/timeseries-comprehensive-guide.md',
+        tags: ['Time Series', 'Statistics', 'Machine Learning', 'Neural Networks', 'ARIMA', 'LSTM']
+    },
+    {
         id: 'agentic-ai-future',
         title: 'The Future of Agentic AI: Building Autonomous Intelligence',
         date: '2025-01-15',
