@@ -135,6 +135,34 @@ main {
     line-height: 1.8;
 }
 
+/* Blog Hero - Specific styling for blog page */
+.blog-hero {
+    background: #fefefe;
+    border-bottom: 2px solid #e0e0e0;
+    padding: 60px 0;
+    text-align: center;
+}
+
+.blog-hero h1 {
+    font-size: 2.2rem;
+    font-weight: 700;
+    margin-bottom: 15px;
+    color: #1a1a1a;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+}
+
+.blog-hero p {
+    font-size: 1rem;
+    color: #555555;
+    margin: 0;
+    letter-spacing: 0.5px;
+}
+
+.blog-list {
+    padding: 40px 0;
+}
+
 /* Clean Sections */
 .section {
     padding: 60px 0;
@@ -176,18 +204,243 @@ main {
     line-height: 1.7;
 }
 
-/* Blog Timeline - Clean Version */
+/* Blog Timeline - Enhanced with Collapsible Functionality */
 .blog-timeline {
     max-width: 800px;
     margin: 0 auto;
     padding: 40px 20px;
 }
 
+.timeline-header {
+    text-align: center;
+    margin-bottom: 40px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid #e0e0e0;
+}
+
+.timeline-header h2 {
+    color: #1a1a1a;
+    font-size: 2rem;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+.timeline-header p {
+    color: #555555;
+    font-size: 1rem;
+    margin: 0;
+}
+
+/* Timeline Controls */
+.timeline-controls {
+    background: #fefefe;
+    border: 2px solid #e0e0e0;
+    padding: 25px;
+    margin-bottom: 30px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.search-container {
+    display: flex;
+    gap: 10px;
+    flex: 1;
+    min-width: 300px;
+}
+
+.search-container input {
+    flex: 1;
+    padding: 10px 15px;
+    border: 2px solid #e0e0e0;
+    background: #fefefe;
+    font-family: 'Courier New', 'Courier', 'Lucida Sans Typewriter', 'Lucida Typewriter', monospace;
+    font-size: 0.9rem;
+    letter-spacing: 0.5px;
+    transition: border-color 0.3s ease;
+}
+
+.search-container input:focus {
+    outline: none;
+    border-color: #333333;
+}
+
+.search-container button,
+.expand-controls button {
+    padding: 10px 20px;
+    border: 2px solid #2e2e2e;
+    background: transparent;
+    color: #2e2e2e;
+    font-family: 'Courier New', 'Courier', 'Lucida Sans Typewriter', 'Lucida Typewriter', monospace;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.search-container button:hover,
+.expand-controls button:hover {
+    background: #2e2e2e;
+    color: #fefefe;
+}
+
+.expand-controls {
+    display: flex;
+    gap: 10px;
+}
+
+.search-results-info {
+    color: #888888;
+    font-size: 0.85rem;
+    margin-top: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* Timeline Year Sections */
+.timeline-year {
+    margin-bottom: 40px;
+}
+
+.year-header {
+    color: #1a1a1a;
+    font-size: 1.6rem;
+    margin-bottom: 0;
+    padding: 20px;
+    background: #fefefe;
+    border: 2px solid #e0e0e0;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 600;
+}
+
+.year-header:hover {
+    border-color: #333333;
+    background: #f8f8f8;
+}
+
+.year-header .expand-icon {
+    font-size: 1rem;
+    transition: transform 0.3s ease;
+    color: #2e2e2e;
+    font-family: monospace;
+}
+
+.year-stats {
+    margin-left: auto;
+    font-size: 0.8rem;
+    color: #888888;
+    font-weight: 400;
+    text-transform: lowercase;
+}
+
+.year-content {
+    overflow: hidden;
+    transition: all 0.4s ease;
+}
+
+.year-content.expanded {
+    max-height: none;
+    opacity: 1;
+    margin-top: 20px;
+}
+
+.year-content.collapsed {
+    max-height: 0;
+    opacity: 0;
+    margin-top: 0;
+}
+
+/* Timeline Month Sections */
+.timeline-month {
+    margin-bottom: 30px;
+}
+
+.month-header {
+    color: #2e2e2e;
+    font-size: 1.2rem;
+    margin-bottom: 0;
+    padding: 15px 20px;
+    background: #fefefe;
+    border: 2px solid #e0e0e0;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 500;
+}
+
+.month-header:hover {
+    border-color: #333333;
+    background: #f8f8f8;
+}
+
+.month-header .expand-icon {
+    font-size: 0.9rem;
+    transition: transform 0.3s ease;
+    color: #2e2e2e;
+    font-family: monospace;
+}
+
+.post-count {
+    margin-left: auto;
+    font-size: 0.75rem;
+    color: #888888;
+    font-weight: 400;
+    text-transform: lowercase;
+}
+
+.timeline-items {
+    position: relative;
+    margin-left: 30px;
+    overflow: hidden;
+    transition: all 0.4s ease;
+}
+
+.timeline-items.expanded {
+    max-height: none;
+    opacity: 1;
+    margin-top: 20px;
+}
+
+.timeline-items.collapsed {
+    max-height: 0;
+    opacity: 0;
+    margin-top: 0;
+}
+
+.timeline-items:before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: #e0e0e0;
+}
+
+/* Timeline Items */
 .timeline-item {
     border-left: 3px solid #e0e0e0;
     padding-left: 30px;
     margin-bottom: 40px;
     position: relative;
+    display: flex;
+    align-items: flex-start;
+    gap: 25px;
 }
 
 .timeline-item:before {
@@ -201,7 +454,22 @@ main {
     border: 3px solid #fefefe;
 }
 
+.timeline-date {
+    flex-shrink: 0;
+    width: 50px;
+    text-align: center;
+}
+
+.timeline-date .day {
+    display: block;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1a1a1a;
+    line-height: 1;
+}
+
 .timeline-content {
+    flex: 1;
     background: #fefefe;
     border: 2px solid #e0e0e0;
     padding: 25px;
@@ -216,6 +484,7 @@ main {
     color: #1a1a1a;
     margin-bottom: 10px;
     font-size: 1.2rem;
+    margin-top: 0;
 }
 
 .timeline-content h3 a {
@@ -235,10 +504,33 @@ main {
 }
 
 .timeline-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 15px;
+    border-top: 1px solid #e0e0e0;
     font-size: 0.85rem;
+}
+
+.timeline-meta .tags {
     color: #888888;
+    font-size: 0.8rem;
     text-transform: uppercase;
     letter-spacing: 1px;
+}
+
+.timeline-meta .read-more {
+    color: #2e2e2e;
+    text-decoration: none;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    transition: color 0.3s ease;
+}
+
+.timeline-meta .read-more:hover {
+    color: #000000;
 }
 
 /* Clean Buttons */
@@ -389,6 +681,78 @@ footer {
     color: #555555;
 }
 
+/* Blog Items for non-timeline view */
+.blog-item {
+    background: #fefefe;
+    border: 2px solid #e0e0e0;
+    padding: 30px;
+    margin-bottom: 30px;
+    transition: border-color 0.3s ease;
+}
+
+.blog-item:hover {
+    border-color: #333333;
+}
+
+.blog-item h3 {
+    color: #1a1a1a;
+    margin-bottom: 15px;
+    font-size: 1.3rem;
+    margin-top: 0;
+}
+
+.blog-item h3 a {
+    color: inherit;
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+.blog-item h3 a:hover {
+    color: #000000;
+}
+
+.blog-item .excerpt {
+    color: #555555;
+    margin-bottom: 20px;
+    line-height: 1.7;
+}
+
+.blog-item .blog-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.85rem;
+    padding-top: 15px;
+    border-top: 1px solid #e0e0e0;
+}
+
+.blog-item .blog-meta .date {
+    color: #888888;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.blog-item .blog-meta .tags {
+    color: #888888;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.blog-item .blog-meta .read-more {
+    color: #2e2e2e;
+    text-decoration: none;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    transition: color 0.3s ease;
+}
+
+.blog-item .blog-meta .read-more:hover {
+    color: #000000;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
     .container {
@@ -421,8 +785,84 @@ footer {
         text-align: center;
     }
     
+    .timeline-controls {
+        flex-direction: column;
+        gap: 15px;
+        padding: 20px;
+    }
+
+    .search-container {
+        min-width: 100%;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .expand-controls {
+        justify-content: center;
+        width: 100%;
+    }
+
+    .expand-controls button {
+        flex: 1;
+        max-width: 150px;
+    }
+    
+    .year-header {
+        font-size: 1.3rem;
+        padding: 15px;
+        flex-direction: column;
+        gap: 8px;
+        text-align: center;
+    }
+
+    .year-stats {
+        margin-left: 0;
+    }
+    
+    .month-header {
+        font-size: 1rem;
+        padding: 12px 15px;
+    }
+    
+    .timeline-items {
+        margin-left: 20px;
+    }
+    
     .timeline-item {
+        flex-direction: column;
+        gap: 15px;
         padding-left: 20px;
+    }
+    
+    .timeline-item:before {
+        left: -6px;
+        width: 12px;
+        height: 12px;
+        top: 10px;
+    }
+    
+    .timeline-date {
+        width: auto;
+        text-align: left;
+    }
+    
+    .timeline-date .day {
+        font-size: 1.2rem;
+        display: inline;
+    }
+    
+    .timeline-content {
+        padding: 20px;
+    }
+    
+    .timeline-content h3 {
+        font-size: 1.1rem;
+    }
+    
+    .timeline-meta {
+        flex-direction: column;
+        gap: 10px;
+        align-items: flex-start;
     }
     
     .article-content {
